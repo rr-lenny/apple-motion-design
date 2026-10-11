@@ -35,15 +35,14 @@ src/
     voiceover.txt          # texte de la voix off, une ligne = un segment entre deux pauses
     timings.json           # temps de chaque mot (généré, voir ci-dessous)
     cues.ts                # repères nommés (ex. CUE.ikigai) lus depuis timings.json
-    timeline.ts            # repères hors voix (accroche, métamorphose), partagés avec le sound design
+    timeline.ts            # repères hors voix (accroche, aiguille, marque-page), partagés avec le sound design
     captions.ts            # découpage des sous-titres (≤ 8 mots, 1-2 lignes, mots-clés colorés)
     icons.tsx              # pictogrammes animés des 4 piliers (flamme, plume, orbite, pièces)
-    butterfly.ts           # géométrie du papillon (métamorphose des 4 cercles)
     SoundDesign.tsx        # placement des effets sonores sur les repères
     Ikigai.tsx             # la chorégraphie
 public/
   audio/                   # voix off d'origine + version montée (-edit.wav)
-  sfx/                     # effets sonores synthétisés (générés)
+  sfx/                     # effets sonores synthétisés (générés, 13 sons)
   fonts/                   # Montserrat + Noto Sans JP (embarquées, pas de réseau au rendu)
 scripts/
   edit_voiceover.py        # montage de la voix (coupes invisibles, silence de tête)
@@ -58,13 +57,16 @@ La voix est montée sans logiciel externe, à l'échantillon près :
 ```bash
 pip install soundfile numpy
 python scripts/edit_voiceover.py public/audio/ikigai-voix-off.mp3 public/audio/ikigai-voix-off-edit.wav \
-  --trim-start 0.49 --cut 10.222 11.10 0.12 --extend 0.08 --pitch-drop 0.07 --fade-out 0.09
+  --trim-start 0.49 --cut 10.195 11.10 0.08 --extend 0.08 --pitch-drop 0.10 \
+  --tail 13.755 13.96 --fade-out 0.12
 ```
 
 - `--trim-start` : retire le silence de tête (la voix démarre à 0,3 s, accroche plus nerveuse) ;
-- `--cut DE A PAUSE` : retire « fondamentales » ; la voyelle finale de « piliers » est légèrement
-  prolongée (`--extend`, `--pitch-drop`) puis s'éteint en fondu, et la phrase suivante reprend
-  dans le bruit de fond réel : la coupe ne s'entend pas.
+- `--cut` : retire « fondamentales ». Au lieu d'un simple fondu, la fin de « piliers » est
+  rendue naturelle : la voyelle est tenue un instant avec une légère descente (`--extend`,
+  `--pitch-drop`), puis on greffe la vraie chute de fin de phrase de « doué. » (`--tail`,
+  même voyelle « é », même hauteur ~120 Hz), en fondu enchaîné aligné sur les périodes de la voix.
+  La phrase suivante reprend dans le bruit de fond réel.
 
 ## Synchronisation avec la voix off
 
@@ -85,13 +87,13 @@ Si tu réenregistres la voix, relance la commande : toute l'animation se recale 
 
 ## Sound design
 
-Tous les sons sont synthétisés (aucune banque de sons, aucun droit à gérer) par
-`python scripts/sound_design.py public/sfx` (`pip install numpy scipy soundfile`) :
-allumage, comète, cloches cristallines en ré majeur pentatonique, une note montante par pilier,
-cliquetis de boussole calés sur le ressort de l'aiguille, montée + métamorphose, battements
-d'ailes, validation… et une nappe d'ambiance très basse. Chaque son est accroché au même
-repère que le mouvement qu'il accompagne (`SoundDesign.tsx`) ; les niveaux se règlent dans
-`AUDIO` (`theme.ts`). Le mix sort à ~-13 LUFS, crête -1,5 dBFS, effets 8-15 dB sous la voix.
+Minimaliste et utile : 13 sons courts et doux d'une même famille (touches de verre, souffle
+d'air, une pulsation grave), synthétisés par `python scripts/sound_design.py public/sfx`
+(`pip install numpy scipy soundfile`), uniquement sur les événements qui ont une fonction :
+allumage et comète de l'accroche, cercle refermé, révélation du nom, une touche par pilier
+(en montant), verrouillage de l'aiguille, transition violette, marque-page, coche, fin.
+Pas de nappe ni de montées. Placement dans `SoundDesign.tsx`, niveaux dans `AUDIO`
+(`theme.ts`). Le mix sort à ~-13 LUFS ; les effets restent ~23 dB sous la voix.
 
 ## Nouvelle vidéo dans le même style
 
