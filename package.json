@@ -1,0 +1,15 @@
+{
+  "name": "apple-motion-design",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "preview": "npx serve -l 5173 .",
+    "audio": "node scripts/audio.mjs",
+    "stills": "node scripts/render.mjs --stills 1.5,4.6,7.2,8.3,10.2,12.9,15.4,18.6,22.6",
+    "render": "node scripts/audio.mjs && node scripts/render.mjs",
+    "render:draft": "node scripts/render.mjs --fps 30 --sub 1 --out out/draft.mp4"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}

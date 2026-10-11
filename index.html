@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lumen — Apple-style motion short</title>
+  <link rel="stylesheet" href="src/styles.css" />
+</head>
+<body>
+  <!-- 1080×1920 stage — everything is driven by src/timeline.js (renderAt(t)) -->
+  <div id="viewport">
+    <div id="stage">
+
+      <!-- Backgrounds -->
+      <div class="layer bg-dark"></div>
+      <div class="layer bg-light" id="bgLight">
+        <div class="aurora a1"></div>
+        <div class="aurora a2"></div>
+        <div class="aurora a3"></div>
+      </div>
+      <div class="layer glow" id="glowDark"></div>
+
+      <!-- ── Scene A · Noise ───────────────────────────── -->
+      <div class="scene" id="sceneA">
+        <div class="headline center-y dark" id="aHead">
+          <div class="line"><span class="w">Work</span> <span class="w">is</span></div>
+          <div class="line"><span class="w muted">noisy.</span></div>
+        </div>
+        <div id="chips"></div>
+        <div class="spark" id="spark"></div>
+      </div>
+
+      <!-- ── Scene B · Meet Lumen ──────────────────────── -->
+      <div class="scene" id="sceneB">
+        <div class="logo" id="logoB"></div>
+        <div class="title-b" id="bTitle"><span class="w">Meet</span> <span class="w grad-text">Lumen.</span></div>
+      </div>
+
+      <!-- ── Scene C · Kinetic type ───────────────────── -->
+      <div class="scene" id="sceneC">
+        <div class="kinetic" id="cBlock">
+          <div class="kline" id="c1">One place</div>
+          <div class="kline" id="c2">for all your</div>
+          <div class="kline slot" id="c3">
+            <span class="slot-w g1">tasks.</span>
+            <span class="slot-w g2">docs.</span>
+            <span class="slot-w g3">chats.</span>
+            <span class="slot-w g4">work.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Scene D · Product UI ─────────────────────── -->
+      <div class="scene" id="sceneD">
+        <div class="captions">
+          <div class="cap" id="capPlan">Plan.</div>
+          <div class="cap" id="capTrack">Track.</div>
+          <div class="cap grad-text" id="capShip">Ship.</div>
+        </div>
+
+        <div class="toast" id="toast">
+          <span class="toast-dot"><svg viewBox="0 0 24 24"><path d="M6 12.5l4 4 8-9" /></svg></span>
+          v2.0 shipped to production
+        </div>
+
+        <div class="card" id="card">
+          <div class="card-head">
+            <div class="avatar"></div>
+            <div>
+              <div class="eyebrow">Good morning, Alex</div>
+              <div class="card-title">Today’s flow</div>
+            </div>
+          </div>
+
+          <div class="tiles">
+            <div class="tile">
+              <div class="tile-label">Focus time</div>
+              <div class="tile-value" id="focusVal">0h 00m</div>
+            </div>
+            <div class="tile tile-ring">
+              <svg viewBox="0 0 120 120" class="ring">
+                <defs>
+                  <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#5b8cff" />
+                    <stop offset=".55" stop-color="#a35bff" />
+                    <stop offset="1" stop-color="#ff6fb1" />
+                  </linearGradient>
+                </defs>
+                <circle cx="60" cy="60" r="48" class="ring-bg" />
+                <circle cx="60" cy="60" r="48" class="ring-fg" id="ringFg" />
+              </svg>
+              <div>
+                <div class="tile-label">Sprint</div>
+                <div class="tile-value" id="ringVal">0%</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="chart">
+            <div class="chart-head"><span>Velocity</span><span class="chip-up" id="chipUp">+38%</span></div>
+            <div class="bars" id="bars"></div>
+          </div>
+
+          <div class="tasks" id="tasks">
+            <div class="task"><span class="check"><svg viewBox="0 0 24 24"><path d="M6 12.5l4 4 8-9" /></svg></span><span class="task-t">Review Q4 roadmap<i class="strike"></i></span></div>
+            <div class="task"><span class="check"><svg viewBox="0 0 24 24"><path d="M6 12.5l4 4 8-9" /></svg></span><span class="task-t">Sync with design<i class="strike"></i></span></div>
+            <div class="task"><span class="check"><svg viewBox="0 0 24 24"><path d="M6 12.5l4 4 8-9" /></svg></span><span class="task-t">Ship v2.0<i class="strike"></i></span></div>
+          </div>
+        </div>
+
+        <div class="touch" id="touch"><div class="ripple" id="ripple"></div></div>
+      </div>
+
+      <!-- ── Scene E · Stat ───────────────────────────── -->
+      <div class="scene" id="sceneE">
+        <div class="stat">
+          <div class="stat-eyebrow" id="eEyebrow">Teams ship up to</div>
+          <div class="stat-num grad-text-live" id="eNum">3×</div>
+          <div class="stat-sub" id="eSub">faster.</div>
+        </div>
+      </div>
+
+      <!-- ── Scene F · Features ───────────────────────── -->
+      <div class="scene" id="sceneF">
+        <div class="f-title" id="fTitle"><span class="w">Built</span> <span class="w">for</span> <span class="w muted">flow.</span></div>
+        <div class="grid" id="grid">
+          <div class="fcard">
+            <div class="ficon i1"><svg viewBox="0 0 24 24"><path class="fill" d="M12 2.5l2.1 7.4 7.4 2.1-7.4 2.1L12 21.5l-2.1-7.4L2.5 12l7.4-2.1z" /></svg></div>
+            <div class="f-name">AI Summaries</div>
+            <div class="f-desc">Threads, in one line.</div>
+          </div>
+          <div class="fcard">
+            <div class="ficon i2"><svg viewBox="0 0 24 24"><path d="M4.5 12a7.5 7.5 0 0 1 13-5.1M19.5 12a7.5 7.5 0 0 1-13 5.1M17.8 3.2v3.9h-3.9M6.2 20.8v-3.9h3.9" /></svg></div>
+            <div class="f-name">Realtime Sync</div>
+            <div class="f-desc">Always up to date.</div>
+          </div>
+          <div class="fcard">
+            <div class="ficon i3"><svg viewBox="0 0 24 24"><path d="M3.5 13.5h5l1.8 2.8h3.4l1.8-2.8h5M6 5h12l2.5 8.5V19H3.5v-5.5z" /></svg></div>
+            <div class="f-name">Smart Inbox</div>
+            <div class="f-desc">What matters, first.</div>
+          </div>
+          <div class="fcard">
+            <div class="ficon i4"><svg viewBox="0 0 24 24"><path class="fill" d="M13.2 2.5L4.5 13.6h6.6l-1.2 7.9 8.7-11.1H12z" /></svg></div>
+            <div class="f-name">Automations</div>
+            <div class="f-desc">Busywork, handled.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Scene G · End card ───────────────────────── -->
+      <div class="scene" id="sceneG">
+        <div class="logo" id="logoG"></div>
+        <div class="g-word" id="gWord">Lumen</div>
+        <div class="g-tag" id="gTag">Work, in flow.</div>
+        <div class="g-cta" id="gCta">Try it free</div>
+        <div class="g-url" id="gUrl">lumen.app</div>
+      </div>
+
+      <div class="layer fade" id="fade"></div>
+    </div>
+  </div>
+
+  <!-- Preview controls (hidden in render mode) -->
+  <div id="controls">
+    <button id="play" aria-label="Play / pause">❚❚</button>
+    <input id="scrub" type="range" min="0" max="1" step="0.0001" value="0" />
+    <span id="time">0.00s</span>
+  </div>
+
+  <script src="src/timeline.js"></script>
+</body>
+</html>
