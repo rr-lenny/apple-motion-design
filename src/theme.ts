@@ -172,7 +172,7 @@ export const AUDIO = {
   /** Voix off mono -> stéréo : +3 dB pour retrouver le niveau d'origine. */
   voice: Math.SQRT2,
   /** Bus des effets ponctuels. */
-  sfx: 0.42,
+  sfx: 0.6,
   /** Nappe sub continue (profondeur), très basse. */
-  bed: 0.06,
+  bed: 0.085,
 } as const;
