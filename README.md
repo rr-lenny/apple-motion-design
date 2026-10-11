@@ -45,7 +45,7 @@ public/
   sfx/                     # effets sonores synthétisés (générés : 15 sons + nappe sub)
   fonts/                   # Montserrat + Noto Sans JP (embarquées, pas de réseau au rendu)
 scripts/
-  edit_voiceover.py        # montage de la voix (coupes invisibles, silence de tête)
+  edit_voiceover.py        # outil de montage de voix (coupes invisibles), non utilisé ici
   align_voiceover.py       # alignement automatique voix off -> timings.json
   sound_design.py          # synthèse de tous les effets sonores -> public/sfx
 ```
