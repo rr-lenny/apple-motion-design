@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lumen — editorial motion short (v2)</title>
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="viewport">
+    <div id="stage">
+      <div id="cam">
+
+        <!-- ── S1 · Time ─────────────────────────────────────── -->
+        <section class="scene s-dark" id="s1">
+          <div class="mat-dark"></div>
+          <div class="clock-wrap" id="clockWrap">
+            <div class="clock-ghost" id="clockGhost"></div>
+            <div class="clock-outer" id="clockOuter"></div>
+            <div class="clock-inner" id="clockInner"></div>
+            <div class="clock-core"></div>
+            <div class="clock-text">
+              <div class="serif-caps" id="s1a">You’re not</div>
+              <div class="serif-caps" id="s1b">out of</div>
+              <div class="time-roll" id="timeRoll">
+                <span class="serif-caps ghost">time</span>
+                <span class="serif-caps ghost">time</span>
+                <span class="serif-caps big">time.</span>
+                <span class="serif-caps ghost">time</span>
+                <span class="serif-caps ghost">time</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── S2 · Focus puzzle ─────────────────────────────── -->
+        <section class="scene s-dark" id="s2">
+          <div class="mat-dark"></div>
+          <div id="bgPieces"></div>
+          <div class="script-w" id="s2script"><span>you’re out of</span></div>
+          <div id="pieces"></div>
+          <div class="mono-note" id="s2note">fig. 02 — the missing piece</div>
+        </section>
+
+        <!-- ── S3 · Desk ─────────────────────────────────────── -->
+        <section class="scene" id="s3">
+          <div class="mat-green">
+            <svg class="mat-lines" viewBox="0 0 1080 1920" id="matLines"></svg>
+          </div>
+          <div class="obj notebook" id="oBook"><i class="band"></i><span>notes<br />2026</span></div>
+          <div class="obj sticky" id="oSticky"><b>30</b><span>min</span></div>
+          <div class="obj pen" id="oPen"><i class="cap"></i><i class="tip"></i></div>
+          <div class="obj cup" id="oCup"><i class="saucer"></i><i class="handle"></i><i class="mug"></i><i class="coffee"></i></div>
+          <svg class="obj clip" id="oClip" viewBox="0 0 60 160"><path d="M18 40 V128 a14 14 0 0 0 28 0 V24 a10 10 0 0 0 -20 0 V118" /></svg>
+
+          <div class="working" id="working"></div>
+          <div class="script-w are-you" id="areYou"><span>are you</span></div>
+
+          <div class="script-w tech" id="tech"><span>technically yes</span></div>
+          <div class="sticker" id="practically">practically no</div>
+          <svg class="arrow" id="arrow" viewBox="0 0 400 300"><path d="M20 30 C 160 10, 300 60, 330 230" /><path d="M300 205 L332 236 L352 196" /></svg>
+
+          <div class="notif" id="notif">
+            <div class="cal"><span>MON</span><b>13</b></div>
+            <div class="notif-t"><b>Meeting moved.</b><span>(again)</span></div>
+          </div>
+        </section>
+
+        <!-- ── S4 · Retro OS ─────────────────────────────────── -->
+        <section class="scene" id="s4">
+          <div class="studs"></div>
+          <div id="bricks"></div>
+          <div id="winStack"></div>
+          <div class="win" id="win">
+            <div class="win-bar"><span id="winTitle">focus.exe</span><i>_</i><i>□</i><i>×</i></div>
+            <div class="win-body">
+              <div class="win-row">
+                <svg class="hourglass" viewBox="0 0 16 16"><path d="M3 1h10v2l-4 5 4 5v2H3v-2l4-5-4-5z" /></svg>
+                <div>
+                  <div class="win-msg">Loading focus…</div>
+                  <div class="win-sub" id="winSub">Estimating time remaining</div>
+                </div>
+              </div>
+              <div class="win-progress"><i id="winBar"></i></div>
+              <div class="win-btns"><span class="btn" id="btnCancel">Cancel</span></div>
+            </div>
+          </div>
+          <div class="stamps">
+            <div class="stamp" id="st1">Busy</div>
+            <div class="stamp" id="st2">isn’t</div>
+            <div class="stamp" id="st3">productive.</div>
+          </div>
+          <svg class="pixel-cursor" id="pxCursor" viewBox="0 0 12 19"><path d="M0 0v16l4-4 3 7 3-1-3-7h5z" /></svg>
+        </section>
+
+        <!-- ── S5 · Lumen ────────────────────────────────────── -->
+        <section class="scene" id="s5">
+          <div class="orange-bg"></div>
+          <div class="toggle" id="toggle"><i class="knob" id="knob"></i><span id="tgBusy">Busy</span><span id="tgFocus">Focused</span></div>
+          <div class="meet">
+            <div class="meet-l" id="meet1">Meet</div>
+            <div class="meet-l" id="meet2">Lumen.</div>
+            <div class="meet-sub" id="meetSub">All your work. One place.</div>
+          </div>
+          <div id="folders"></div>
+          <div class="fcard-wrap" id="fcard">
+            <div class="fcard-tab"><span id="fcount">0 items</span></div>
+            <div class="fcard-body">
+              <div class="fc-small">is what<br />changes<br />your day</div>
+              <div class="fc-big">Lumen</div>
+              <div class="fc-mid">workspace</div>
+              <div class="fc-foot"><b>tasks</b>, docs and chats — finally together.</div>
+            </div>
+            <svg class="fc-paperclip" viewBox="0 0 60 160"><path d="M18 40 V128 a14 14 0 0 0 28 0 V24 a10 10 0 0 0 -20 0 V118" /></svg>
+            <div class="fc-binder"><i></i></div>
+          </div>
+          <svg class="mac-cursor" id="macCursor" viewBox="0 0 24 34"><path d="M2 2 L2 27 L8.5 21 L13 31.5 L17.5 29.5 L13 19.5 L22 19.5 Z" /></svg>
+        </section>
+
+        <!-- ── S6 · End ──────────────────────────────────────── -->
+        <section class="scene s-dark" id="s6">
+          <div id="dust"></div>
+          <div class="star" id="star"></div>
+          <div class="end-q">
+            <div class="serif-caps" id="q1">Am I busy</div>
+            <div class="serif-caps" id="q2">or building?</div>
+          </div>
+          <div class="lockup">
+            <div class="lk-word" id="lkWord">Lumen</div>
+            <div class="lk-tag" id="lkTag">Work, in focus.</div>
+            <div class="lk-url" id="lkUrl">lumen.app — try it free</div>
+          </div>
+        </section>
+      </div>
+
+      <!-- ── Post FX ─────────────────────────────────────────── -->
+      <div class="fx leak" id="leak"></div>
+      <svg class="fx grain" id="grainSvg" width="1080" height="1920">
+        <filter id="noise" x="0" y="0" width="100%" height="100%">
+          <feTurbulence id="turb" type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="1" stitchTiles="stitch" />
+          <feColorMatrix type="saturate" values="0" />
+        </filter>
+        <rect width="1080" height="1920" filter="url(#noise)" />
+      </svg>
+      <div class="fx vignette"></div>
+      <div class="fx flash" id="flash"></div>
+      <div class="hud" id="hud">
+        <i class="crop tl"></i><i class="crop tr"></i><i class="crop bl"></i><i class="crop br"></i>
+        <span class="hud-l">LUMEN® — <b id="hudFig">FIG.01</b></span>
+        <span class="hud-r"><i class="rec"></i><b id="tc">00:00:00:00</b></span>
+      </div>
+
+      <svg width="0" height="0" style="position:absolute">
+        <filter id="rgb" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+          <feColorMatrix in="SourceGraphic" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="r" />
+          <feOffset id="rgbR" in="r" dx="0" dy="0" result="r2" />
+          <feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="g" />
+          <feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="b" />
+          <feOffset id="rgbB" in="b" dx="0" dy="0" result="b2" />
+          <feBlend in="r2" in2="g" mode="screen" result="rg" />
+          <feBlend in="rg" in2="b2" mode="screen" />
+        </filter>
+      </svg>
+    </div>
+  </div>
+
+  <div id="controls">
+    <button id="play" aria-label="Play / pause">❚❚</button>
+    <input id="scrub" type="range" min="0" max="1" step="0.0001" value="0" />
+    <span id="time">0.00s</span>
+  </div>
+
+  <script src="timeline.js"></script>
+</body>
+</html>

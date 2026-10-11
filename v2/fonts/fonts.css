@@ -1,0 +1,12 @@
+/* Local copies of OFL fonts (Google Fonts, latin subset) */
+@font-face { font-family: 'Instrument Serif'; font-style: normal; font-weight: 400; font-display: block; src: url('InstrumentSerif-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Instrument Serif'; font-style: italic; font-weight: 400; font-display: block; src: url('InstrumentSerif-400-italic.woff2') format('woff2'); }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 100 900; font-display: block; src: url('Inter-var.woff2') format('woff2'); }
+@font-face { font-family: 'Archivo'; font-style: normal; font-weight: 800 900; font-display: block; src: url('Archivo-var.woff2') format('woff2'); }
+@font-face { font-family: 'Mr Dafoe'; font-style: normal; font-weight: 400; font-display: block; src: url('MrDafoe-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Yellowtail'; font-style: normal; font-weight: 400; font-display: block; src: url('Yellowtail-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Silkscreen'; font-style: normal; font-weight: 400; font-display: block; src: url('Silkscreen-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Silkscreen'; font-style: normal; font-weight: 700; font-display: block; src: url('Silkscreen-700-normal.woff2') format('woff2'); }
+@font-face { font-family: 'VT323'; font-style: normal; font-weight: 400; font-display: block; src: url('VT323-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Space Mono'; font-style: normal; font-weight: 400; font-display: block; src: url('SpaceMono-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Space Mono'; font-style: normal; font-weight: 700; font-display: block; src: url('SpaceMono-700-normal.woff2') format('woff2'); }

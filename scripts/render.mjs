@@ -9,6 +9,7 @@
  *   node scripts/render.mjs                       # full quality → out/lumen-short.mp4
  *   node scripts/render.mjs --fps 30 --sub 1      # fast draft
  *   node scripts/render.mjs --stills 1,4.2,10     # PNG stills to out/stills
+ *   node scripts/render.mjs --page v2/index.html --out out/lumen-v2.mp4 --audio out/soundtrack-v2.wav
  */
 import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
@@ -31,7 +32,8 @@ const SHUTTER = 0.5; // fraction of the frame interval the "shutter" is open
 const WORKERS = Number(args.workers || Math.max(1, Math.min(4, os.cpus().length)));
 const OUT = resolve(root, args.out || 'out/lumen-short.mp4');
 const AUDIO = args.audio === undefined ? resolve(root, 'out/soundtrack.wav') : args.audio === 'none' ? null : resolve(root, args.audio);
-const pageUrl = pathToFileURL(join(root, 'index.html')).href + '?render';
+const PAGE = args.page || 'index.html';
+const pageUrl = pathToFileURL(join(root, PAGE)).href + '?render';
 
 const browserOpts = {
   args: ['--force-color-profile=srgb', '--disable-lcd-text', '--font-render-hinting=none'],
@@ -40,6 +42,7 @@ const browserOpts = {
 async function openPage(browser) {
   const page = await browser.newPage({ viewport: { width: 1080, height: 1920 }, deviceScaleFactor: 1 });
   await page.goto(pageUrl);
+  await page.evaluate(() => window.fontsReady || document.fonts.ready);
   await page.evaluate(() => document.fonts.ready);
   const cdp = await page.context().newCDPSession(page);
   const shot = async (t) => {
@@ -59,7 +62,7 @@ function ffmpeg(argv) {
 const write = (stream, buf) => new Promise((res) => (stream.write(buf) ? res() : stream.once('drain', res)));
 
 async function stills(times) {
-  const dir = resolve(root, 'out/stills');
+  const dir = resolve(root, args.stillsDir || 'out/stills');
   mkdirSync(dir, { recursive: true });
   const browser = await chromium.launch(browserOpts);
   const { shot } = await openPage(browser);
