@@ -9,7 +9,7 @@ export const SCREENS: string[] = [
   'si tu as la volonté',
   'de vivre de ta création.',
   "Ce principe, / c'est l'{y:IKIGAI}.",
-  'Elle repose sur 4 piliers.',
+  'Elle repose sur / 4 piliers fondamentaux.',
   'Ce que tu aimes faire.',
   'Ce en quoi tu es doué.',
   'Ce dont le monde a besoin.',

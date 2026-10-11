@@ -166,11 +166,13 @@ export const TRANSITION = { fadeSec: 0.5 } as const;
 
 /**
  * Mixage. Les effets (public/sfx) sont normalisés à -1 dBFS : leur niveau final est
- * `sfx` x le gain propre à chaque son. Sobriété : les effets restent ~20 dB sous la voix.
+ * `sfx` x le gain propre à chaque son. Effets graves et profonds, mais toujours sous la voix.
  */
 export const AUDIO = {
   /** Voix off mono -> stéréo : +3 dB pour retrouver le niveau d'origine. */
   voice: Math.SQRT2,
   /** Bus des effets ponctuels. */
-  sfx: 0.3,
+  sfx: 0.42,
+  /** Nappe sub continue (profondeur), très basse. */
+  bed: 0.06,
 } as const;

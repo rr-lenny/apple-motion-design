@@ -685,7 +685,7 @@ export const Ikigai: React.FC = () => {
   const t = frame / fps;
   return (
     <AbsoluteFill style={{ backgroundColor: COLORS.bgEdge }}>
-      <Audio src={staticFile('audio/ikigai-voix-off-edit.wav')} volume={AUDIO.voice} />
+      <Audio src={staticFile('audio/ikigai-voix-off.mp3')} volume={AUDIO.voice} />
       <SoundDesign />
       <Stage zoom={cameraZoom(t)} ambient={ambientLights(t)} overlay={<Subtitles t={t} screens={CAPTIONS} />}>
         <svg width={VIDEO.width} height={VIDEO.height} viewBox={`0 0 ${VIDEO.width} ${VIDEO.height}`}>

@@ -41,8 +41,8 @@ src/
     SoundDesign.tsx        # placement des effets sonores sur les repères
     Ikigai.tsx             # la chorégraphie
 public/
-  audio/                   # voix off d'origine + version montée (-edit.wav)
-  sfx/                     # effets sonores synthétisés (générés, 13 sons)
+  audio/                   # voix off d'origine (utilisée telle quelle)
+  sfx/                     # effets sonores synthétisés (générés : 15 sons + nappe sub)
   fonts/                   # Montserrat + Noto Sans JP (embarquées, pas de réseau au rendu)
 scripts/
   edit_voiceover.py        # montage de la voix (coupes invisibles, silence de tête)
@@ -50,23 +50,14 @@ scripts/
   sound_design.py          # synthèse de tous les effets sonores -> public/sfx
 ```
 
-## Montage de la voix off
+## Voix off
 
-La voix est montée sans logiciel externe, à l'échantillon près :
+La vidéo utilise la voix off d'origine, sans retouche (`public/audio/ikigai-voix-off.mp3`).
+Les sous-titres affichent « 4 piliers fondamentaux ».
 
-```bash
-pip install soundfile numpy
-python scripts/edit_voiceover.py public/audio/ikigai-voix-off.mp3 public/audio/ikigai-voix-off-edit.wav \
-  --trim-start 0.49 --cut 10.195 11.10 0.08 --extend 0.08 --pitch-drop 0.10 \
-  --tail 13.755 13.96 --fade-out 0.12
-```
-
-- `--trim-start` : retire le silence de tête (la voix démarre à 0,3 s, accroche plus nerveuse) ;
-- `--cut` : retire « fondamentales ». Au lieu d'un simple fondu, la fin de « piliers » est
-  rendue naturelle : la voyelle est tenue un instant avec une légère descente (`--extend`,
-  `--pitch-drop`), puis on greffe la vraie chute de fin de phrase de « doué. » (`--tail`,
-  même voyelle « é », même hauteur ~120 Hz), en fondu enchaîné aligné sur les périodes de la voix.
-  La phrase suivante reprend dans le bruit de fond réel.
+`scripts/edit_voiceover.py` reste disponible pour une prochaine vidéo : il retire un mot ou un
+silence sans que la coupe s'entende (voyelle tenue, greffe d'une vraie fin de phrase prise
+ailleurs dans la prise, fondu enchaîné aligné sur les périodes de la voix). Voir son en-tête.
 
 ## Synchronisation avec la voix off
 
@@ -87,13 +78,19 @@ Si tu réenregistres la voix, relance la commande : toute l'animation se recale 
 
 ## Sound design
 
-Minimaliste et utile : 13 sons courts et doux d'une même famille (touches de verre, souffle
-d'air, une pulsation grave), synthétisés par `python scripts/sound_design.py public/sfx`
-(`pip install numpy scipy soundfile`), uniquement sur les événements qui ont une fonction :
-allumage et comète de l'accroche, cercle refermé, révélation du nom, une touche par pilier
-(en montant), verrouillage de l'aiguille, transition violette, marque-page, coche, fin.
-Pas de nappe ni de montées. Placement dans `SoundDesign.tsx`, niveaux dans `AUDIO`
-(`theme.ts`). Le mix sort à ~-13 LUFS ; les effets restent ~23 dB sous la voix.
+Sobre, utile, ancré dans les basses. Synthétisé par `python scripts/sound_design.py public/sfx`
+(`pip install numpy scipy soundfile`) — aucune banque de sons :
+
+- un son n'existe que s'il sert un événement visuel : allumage, comète, atterrissage, cercle
+  refermé, révélation du nom, séparation en 4, une note de basse par pilier (ré, mi, fa#, la),
+  aiguille verrouillée, transition violette, fusion en marque-page, coche, fin ;
+- le caractère vient du grave : sub-basses de 30 à 80 Hz (le poids, ressenti au casque),
+  doublées d'une octave et d'une saturation douce (le grave reste audible sur téléphone),
+  un fin transitoire aigu pour la précision, et un espace sombre et profond ;
+- une nappe sub très basse (ré grave qui respire lentement) donne la profondeur continue.
+
+Placement dans `SoundDesign.tsx`, niveaux dans `AUDIO` (`theme.ts`). Le mix sort à ~-13 LUFS,
+crête -1,8 dBFS ; les effets sont ~15 LU sous la voix.
 
 ## Nouvelle vidéo dans le même style
 
