@@ -5,9 +5,10 @@
   "description": "Motion design néon minimaliste (Remotion) — vidéos verticales 9:16",
   "scripts": {
     "studio": "remotion studio",
-    "render:ikigai": "remotion render Ikigai out/ikigai.mp4",
+    "render:ikigai": "remotion render Ikigai out/ikigai.raw.mp4 && npm run master:ikigai",
     "still": "remotion still",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "master:ikigai": "ffmpeg -v error -y -i out/ikigai.raw.mp4 -c:v copy -af alimiter=limit=0.84:attack=3:release=60:level=disabled -c:a aac -b:a 320k -ar 48000 out/ikigai.mp4 && rm out/ikigai.raw.mp4"
   },
   "license": "UNLICENSED",
   "dependencies": {

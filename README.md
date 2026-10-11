@@ -90,7 +90,7 @@ Sobre, utile, ancré dans les basses. Synthétisé par `python scripts/sound_des
 - une nappe sub très basse (ré grave qui respire lentement) donne la profondeur continue.
 
 Placement dans `SoundDesign.tsx`, niveaux dans `AUDIO` (`theme.ts`). Le mix sort à ~-13 LUFS,
-crête -1,1 dBFS ; les effets sont ~12 LU sous la voix.
+crête -1,5 dBFS (limiteur de mastering appliqué par `npm run render:ikigai`, ffmpeg requis) ; les effets sont ~9 LU sous la voix.
 
 ## Nouvelle vidéo dans le même style
 
