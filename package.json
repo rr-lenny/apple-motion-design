@@ -1,0 +1,25 @@
+{
+  "name": "apple-motion-design",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Motion design néon minimaliste (Remotion) — vidéos verticales 9:16",
+  "scripts": {
+    "studio": "remotion studio",
+    "render:ikigai": "remotion render Ikigai out/ikigai.mp4",
+    "still": "remotion still",
+    "typecheck": "tsc --noEmit"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@remotion/cli": "4.0.534",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "4.0.534"
+  },
+  "devDependencies": {
+    "@fontsource/montserrat": "5.1.0",
+    "@fontsource/noto-sans-jp": "5.1.0",
+    "@types/react": "18.3.12",
+    "typescript": "5.6.3"
+  }
+}

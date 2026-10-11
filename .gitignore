@@ -1,0 +1,5 @@
+node_modules/
+out/*
+!out/ikigai.mp4
+.DS_Store
+*.log

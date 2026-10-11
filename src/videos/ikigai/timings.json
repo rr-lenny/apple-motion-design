@@ -1,0 +1,636 @@
+{
+ "duration": 30.657,
+ "segments": [
+  {
+   "text": "J'ai découvert une philosophie japonaise",
+   "start": 0.79,
+   "end": 2.497,
+   "heard": "J'ai découvert une philosophie japonaise.",
+   "words": [
+    {
+     "w": "J'ai",
+     "t": 0.79,
+     "e": 0.95
+    },
+    {
+     "w": "découvert",
+     "t": 0.95,
+     "e": 1.35
+    },
+    {
+     "w": "une",
+     "t": 1.35,
+     "e": 1.43
+    },
+    {
+     "w": "philosophie",
+     "t": 1.43,
+     "e": 1.99
+    },
+    {
+     "w": "japonaise",
+     "t": 1.99,
+     "e": 2.497
+    }
+   ]
+  },
+  {
+   "text": "qui va changer ta perception du bonheur",
+   "start": 2.746,
+   "end": 4.23,
+   "heard": "Tu vais changer ta perception du bonheur.",
+   "words": [
+    {
+     "w": "qui",
+     "t": 2.826,
+     "e": 2.906
+    },
+    {
+     "w": "va",
+     "t": 2.906,
+     "e": 3.066
+    },
+    {
+     "w": "changer",
+     "t": 3.066,
+     "e": 3.306
+    },
+    {
+     "w": "ta",
+     "t": 3.306,
+     "e": 3.466
+    },
+    {
+     "w": "perception",
+     "t": 3.466,
+     "e": 3.786
+    },
+    {
+     "w": "du",
+     "t": 3.786,
+     "e": 3.866
+    },
+    {
+     "w": "bonheur",
+     "t": 3.866,
+     "e": 4.23
+    }
+   ]
+  },
+  {
+   "text": "si tu as la volonté de vivre de ta création.",
+   "start": 4.564,
+   "end": 6.299,
+   "heard": "Si tu as la volonté de vivre de ta création.",
+   "words": [
+    {
+     "w": "si",
+     "t": 4.564,
+     "e": 4.723
+    },
+    {
+     "w": "tu",
+     "t": 4.723,
+     "e": 4.803
+    },
+    {
+     "w": "as",
+     "t": 4.803,
+     "e": 4.963
+    },
+    {
+     "w": "la",
+     "t": 4.963,
+     "e": 5.043
+    },
+    {
+     "w": "volonté",
+     "t": 5.043,
+     "e": 5.283
+    },
+    {
+     "w": "de",
+     "t": 5.283,
+     "e": 5.363
+    },
+    {
+     "w": "vivre",
+     "t": 5.363,
+     "e": 5.603
+    },
+    {
+     "w": "de",
+     "t": 5.603,
+     "e": 5.763
+    },
+    {
+     "w": "ta",
+     "t": 5.763,
+     "e": 5.924
+    },
+    {
+     "w": "création.",
+     "t": 5.924,
+     "e": 6.299
+    }
+   ]
+  },
+  {
+   "text": "Ce principe,",
+   "start": 6.811,
+   "end": 7.547,
+   "heard": "C'est principal.",
+   "words": [
+    {
+     "w": "Ce",
+     "t": 6.891,
+     "e": 7.131
+    },
+    {
+     "w": "principe,",
+     "t": 7.131,
+     "e": 7.547
+    }
+   ]
+  },
+  {
+   "text": "c'est l'IKIGAI.",
+   "start": 7.759,
+   "end": 8.674,
+   "heard": "C'est Likegai.",
+   "words": [
+    {
+     "w": "c'est",
+     "t": 7.759,
+     "e": 7.919
+    },
+    {
+     "w": "l'IKIGAI.",
+     "t": 7.919,
+     "e": 8.674
+    }
+   ]
+  },
+  {
+   "text": "Elle repose sur 4 piliers fondamentaux.",
+   "start": 9.281,
+   "end": 10.967,
+   "heard": "Elle repose sur quatre piliers fondamentales.",
+   "words": [
+    {
+     "w": "Elle",
+     "t": 9.281,
+     "e": 9.441
+    },
+    {
+     "w": "repose",
+     "t": 9.441,
+     "e": 9.761
+    },
+    {
+     "w": "sur",
+     "t": 9.761,
+     "e": 9.841
+    },
+    {
+     "w": "4",
+     "t": 9.841,
+     "e": 10.081
+    },
+    {
+     "w": "piliers",
+     "t": 10.081,
+     "e": 10.401
+    },
+    {
+     "w": "fondamentaux.",
+     "t": 10.401,
+     "e": 10.967
+    }
+   ]
+  },
+  {
+   "text": "Ce que tu aimes faire.",
+   "start": 11.436,
+   "end": 12.475,
+   "heard": "Ce que tu aimes faire.",
+   "words": [
+    {
+     "w": "Ce",
+     "t": 11.436,
+     "e": 11.596
+    },
+    {
+     "w": "que",
+     "t": 11.596,
+     "e": 11.756
+    },
+    {
+     "w": "tu",
+     "t": 11.756,
+     "e": 11.916
+    },
+    {
+     "w": "aimes",
+     "t": 11.916,
+     "e": 12.236
+    },
+    {
+     "w": "faire.",
+     "t": 12.236,
+     "e": 12.475
+    }
+   ]
+  },
+  {
+   "text": "Ce en quoi tu es doué.",
+   "start": 12.887,
+   "end": 13.864,
+   "heard": "Ce en quoi tu es doué.",
+   "words": [
+    {
+     "w": "Ce",
+     "t": 12.887,
+     "e": 13.027
+    },
+    {
+     "w": "en",
+     "t": 13.027,
+     "e": 13.107
+    },
+    {
+     "w": "quoi",
+     "t": 13.107,
+     "e": 13.267
+    },
+    {
+     "w": "tu",
+     "t": 13.267,
+     "e": 13.427
+    },
+    {
+     "w": "es",
+     "t": 13.427,
+     "e": 13.587
+    },
+    {
+     "w": "doué.",
+     "t": 13.587,
+     "e": 13.864
+    }
+   ]
+  },
+  {
+   "text": "Ce dont le monde a besoin.",
+   "start": 14.359,
+   "end": 15.549,
+   "heard": "Ce dont le monde a besoin.",
+   "words": [
+    {
+     "w": "Ce",
+     "t": 14.439,
+     "e": 14.679
+    },
+    {
+     "w": "dont",
+     "t": 14.679,
+     "e": 14.839
+    },
+    {
+     "w": "le",
+     "t": 14.839,
+     "e": 14.919
+    },
+    {
+     "w": "monde",
+     "t": 14.919,
+     "e": 15.079
+    },
+    {
+     "w": "a",
+     "t": 15.079,
+     "e": 15.239
+    },
+    {
+     "w": "besoin.",
+     "t": 15.239,
+     "e": 15.549
+    }
+   ]
+  },
+  {
+   "text": "Et enfin,",
+   "start": 15.882,
+   "end": 16.407,
+   "heard": "Et enfin.",
+   "words": [
+    {
+     "w": "Et",
+     "t": 15.962,
+     "e": 16.042
+    },
+    {
+     "w": "enfin,",
+     "t": 16.042,
+     "e": 16.407
+    }
+   ]
+  },
+  {
+   "text": "ce pourquoi tu es payé.",
+   "start": 16.671,
+   "end": 17.741,
+   "heard": "C'est pourquoi tu es payé.",
+   "words": [
+    {
+     "w": "ce",
+     "t": 16.671,
+     "e": 16.911
+    },
+    {
+     "w": "pourquoi",
+     "t": 16.911,
+     "e": 17.151
+    },
+    {
+     "w": "tu",
+     "t": 17.151,
+     "e": 17.311
+    },
+    {
+     "w": "es",
+     "t": 17.311,
+     "e": 17.471
+    },
+    {
+     "w": "payé.",
+     "t": 17.471,
+     "e": 17.741
+    }
+   ]
+  },
+  {
+   "text": "Cet équilibre permet de trouver ta direction,",
+   "start": 18.221,
+   "end": 20.075,
+   "heard": "Cet équilibre permet de trouver ta direction.",
+   "words": [
+    {
+     "w": "Cet",
+     "t": 18.221,
+     "e": 18.461
+    },
+    {
+     "w": "équilibre",
+     "t": 18.461,
+     "e": 18.861
+    },
+    {
+     "w": "permet",
+     "t": 18.861,
+     "e": 19.101
+    },
+    {
+     "w": "de",
+     "t": 19.101,
+     "e": 19.181
+    },
+    {
+     "w": "trouver",
+     "t": 19.181,
+     "e": 19.421
+    },
+    {
+     "w": "ta",
+     "t": 19.421,
+     "e": 19.581
+    },
+    {
+     "w": "direction,",
+     "t": 19.581,
+     "e": 20.075
+    }
+   ]
+  },
+  {
+   "text": "remettre du sens à ta vie,",
+   "start": 20.27,
+   "end": 21.534,
+   "heard": "Remettre du sens à ta vie.",
+   "words": [
+    {
+     "w": "remettre",
+     "t": 20.35,
+     "e": 20.75
+    },
+    {
+     "w": "du",
+     "t": 20.75,
+     "e": 20.83
+    },
+    {
+     "w": "sens",
+     "t": 20.83,
+     "e": 21.07
+    },
+    {
+     "w": "à",
+     "t": 21.07,
+     "e": 21.15
+    },
+    {
+     "w": "ta",
+     "t": 21.15,
+     "e": 21.31
+    },
+    {
+     "w": "vie,",
+     "t": 21.31,
+     "e": 21.534
+    }
+   ]
+  },
+  {
+   "text": "et de pouvoir pleinement",
+   "start": 21.875,
+   "end": 22.792,
+   "heard": "Et de pouvoir pleinement.",
+   "words": [
+    {
+     "w": "et",
+     "t": 21.875,
+     "e": 21.934
+    },
+    {
+     "w": "de",
+     "t": 21.934,
+     "e": 22.094
+    },
+    {
+     "w": "pouvoir",
+     "t": 22.094,
+     "e": 22.414
+    },
+    {
+     "w": "pleinement",
+     "t": 22.414,
+     "e": 22.792
+    }
+   ]
+  },
+  {
+   "text": "t'épanouir dans tes projets créatifs.",
+   "start": 23.038,
+   "end": 24.507,
+   "heard": "épanouir dans tes projets créatifs.",
+   "words": [
+    {
+     "w": "t'épanouir",
+     "t": 23.118,
+     "e": 23.598
+    },
+    {
+     "w": "dans",
+     "t": 23.598,
+     "e": 23.758
+    },
+    {
+     "w": "tes",
+     "t": 23.758,
+     "e": 23.838
+    },
+    {
+     "w": "projets",
+     "t": 23.838,
+     "e": 24.078
+    },
+    {
+     "w": "créatifs.",
+     "t": 24.078,
+     "e": 24.507
+    }
+   ]
+  },
+  {
+   "text": "N'hésite pas à enregistrer cette vidéo pour ne pas l'oublier",
+   "start": 24.821,
+   "end": 27.378,
+   "heard": "N'hésite pas à enregistrer cette vidéo pour ne pas l'oublier.",
+   "words": [
+    {
+     "w": "N'hésite",
+     "t": 24.821,
+     "e": 25.221
+    },
+    {
+     "w": "pas",
+     "t": 25.221,
+     "e": 25.301
+    },
+    {
+     "w": "à",
+     "t": 25.301,
+     "e": 25.381
+    },
+    {
+     "w": "enregistrer",
+     "t": 25.381,
+     "e": 25.861
+    },
+    {
+     "w": "cette",
+     "t": 25.861,
+     "e": 26.101
+    },
+    {
+     "w": "vidéo",
+     "t": 26.101,
+     "e": 26.421
+    },
+    {
+     "w": "pour",
+     "t": 26.421,
+     "e": 26.581
+    },
+    {
+     "w": "ne",
+     "t": 26.581,
+     "e": 26.661
+    },
+    {
+     "w": "pas",
+     "t": 26.661,
+     "e": 26.821
+    },
+    {
+     "w": "l'oublier",
+     "t": 26.821,
+     "e": 27.378
+    }
+   ]
+  },
+  {
+   "text": "et je te dis à très vite pour de nouvelles inspirations.",
+   "start": 27.723,
+   "end": 30.19,
+   "heard": "Et je te dis à très vite pour de nouvelles inspirations.",
+   "words": [
+    {
+     "w": "et",
+     "t": 27.723,
+     "e": 27.883
+    },
+    {
+     "w": "je",
+     "t": 27.883,
+     "e": 28.043
+    },
+    {
+     "w": "te",
+     "t": 28.043,
+     "e": 28.203
+    },
+    {
+     "w": "dis",
+     "t": 28.203,
+     "e": 28.363
+    },
+    {
+     "w": "à",
+     "t": 28.363,
+     "e": 28.443
+    },
+    {
+     "w": "très",
+     "t": 28.443,
+     "e": 28.603
+    },
+    {
+     "w": "vite",
+     "t": 28.603,
+     "e": 28.843
+    },
+    {
+     "w": "pour",
+     "t": 28.843,
+     "e": 29.003
+    },
+    {
+     "w": "de",
+     "t": 29.003,
+     "e": 29.163
+    },
+    {
+     "w": "nouvelles",
+     "t": 29.163,
+     "e": 29.563
+    },
+    {
+     "w": "inspirations.",
+     "t": 29.563,
+     "e": 30.19
+    }
+   ]
+  }
+ ]
+}
