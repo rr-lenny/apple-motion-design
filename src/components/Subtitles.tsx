@@ -9,7 +9,7 @@ type CaptionChar = { ch: string; t: number; color: ColorName };
 type CaptionWord = { t: number; chars: CaptionChar[] };
 export type CaptionScreen = { start: number; end: number; lines: CaptionWord[][] };
 
-const MARK: Record<string, ColorName> = { y: 'yellow', b: 'blue', g: 'green', r: 'red' };
+const MARK: Record<string, ColorName> = { y: 'yellow', b: 'blue', g: 'green', r: 'red', v: 'violet' };
 
 const normalize = (s: string) =>
   s
@@ -37,7 +37,7 @@ const parseWord = (raw: string): Array<{ text: string; color: ColorName }> => {
 /**
  * Construit les écrans de sous-titres à partir du découpage éditorial (`screens`)
  * et des temps de chaque mot de la voix off.
- * Syntaxe : " / " = retour à la ligne, "{y:mot}" = mot coloré (y, b, g, r).
+ * Syntaxe : " / " = retour à la ligne, "{y:mot}" = mot coloré (y, b, g, r, v).
  */
 export const buildCaptions = (screens: string[], words: TimedWord[], endTime: number): CaptionScreen[] => {
   let cursor = 0;

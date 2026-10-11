@@ -3,13 +3,16 @@ import { AbsoluteFill, Audio, spring, staticFile, useCurrentFrame, useVideoConfi
 import { Glow, GlowDefs } from '../../components/Glow';
 import { AmbientLight, Stage } from '../../components/Stage';
 import { buildCaptions, Subtitles } from '../../components/Subtitles';
-import { bookmarkPts, circlePts, morph, polar, Pt, resample, tiltedArc, toPath } from '../../lib/geometry';
+import { bookmarkPts, circlePts, morph, polar, Pt, resample, scalePts, tiltedArc, toPath } from '../../lib/geometry';
 import { loadFonts } from '../../lib/fonts';
 import { breathe, keyframes, lerp, mixColor, prog, seeded } from '../../lib/motion';
-import { CAMERA, COLORS, EASE, FONT, GLOW, LAYOUT, SPRING, STROKE, TRAIL, VIDEO } from '../../theme';
+import { AUDIO, CAMERA, COLORS, EASE, FONT, GLOW, LAYOUT, SPRING, STROKE, TRAIL, VIDEO } from '../../theme';
+import { BODY, BUTTERFLY_SCALE, circleForWing, innerWing, WING_SAMPLES, wingAt } from './butterfly';
 import { SCREENS } from './captions';
 import { CUE, WORDS } from './cues';
-import { ICON_PATHS, IconName, TracedPath } from './icons';
+import { CHECK_PATH, PILLAR_ICONS, PillarIconName, TracedPath } from './icons';
+import { SoundDesign } from './SoundDesign';
+import { BOOKMARK_UNFOLD, FLAP_PERIOD, HOOK, METAMORPH } from './timeline';
 
 loadFonts();
 
@@ -32,18 +35,19 @@ const PETAL_R = 160; // les 4 cercles
 const PETAL_D = 104; // distance centre -> centre de chaque cercle (diagramme ~49 % de la largeur)
 
 /** Les 4 piliers, dans l'ordre de la voix off : haut, droite, bas, gauche. */
-const PILLARS: Array<{ dir: Pt; icon: IconName; label: string; bloom: string }> = [
-  { dir: [0, -1], icon: 'heart', label: 'PASSION', bloom: COLORS.red },
-  { dir: [1, 0], icon: 'star', label: 'TALENT', bloom: COLORS.blue },
-  { dir: [0, 1], icon: 'globe', label: 'UTILITÉ', bloom: COLORS.green },
-  { dir: [-1, 0], icon: 'coin', label: 'REVENU', bloom: COLORS.yellow },
+const PILLARS: Array<{ dir: Pt; icon: PillarIconName; label: string }> = [
+  { dir: [0, -1], icon: 'flame', label: 'PASSION' },
+  { dir: [1, 0], icon: 'pen', label: 'TALENT' },
+  { dir: [0, 1], icon: 'orbit', label: 'UTILITÉ' },
+  { dir: [-1, 0], icon: 'coins', label: 'REVENU' },
 ];
 
-const ORB_SPRING = (frame: number, fps: number, startSec: number) =>
-  spring({ frame: frame - Math.round(startSec * fps), fps, config: SPRING });
+type SpringConfig = { stiffness: number; damping: number; mass: number };
+const springAt = (frame: number, fps: number, startSec: number, config: SpringConfig = SPRING) =>
+  spring({ frame: frame - Math.round(startSec * fps), fps, config });
 
 /* ------------------------------------------------------------------ */
-/* Acte 1 : l'ensō, le point de lumière, le changement de perception    */
+/* Acte 1 : l'accroche (comète + ensō), la perspective, le cercle       */
 /* ------------------------------------------------------------------ */
 
 const ensoState = (t: number) => {
@@ -59,13 +63,14 @@ const ensoState = (t: number) => {
     [CUE.volonte - 0.05, FLOOR_Y],
     [CUE.volonte + 0.7, CY],
   ]);
-  const trace = prog(t, CUE.decouvert, CUE.japonaise + 0.45, EASE.inOut);
+  // la comète trace l'ensō : le trait suit exactement sa tête
+  const trace = prog(t, HOOK.travel, HOOK.arrive, EASE.glide);
   const close = prog(t, CUE.creation, CUE.creation + 0.5, EASE.inOut);
   const sweep = ENSO_SWEEP * trace + (360 - ENSO_SWEEP) * close;
   const intensity =
     GLOW.on *
       (1 +
-        0.35 * (prog(t, CUE.japonaise, CUE.japonaise + 0.3) - prog(t, CUE.japonaise + 0.3, CUE.qui)) +
+        0.5 * (prog(t, HOOK.arrive - 0.1, HOOK.arrive + 0.15) - prog(t, HOOK.arrive + 0.15, CUE.qui)) +
         0.45 * (prog(t, CUE.creation + 0.4, CUE.creation + 0.6) - prog(t, CUE.creation + 0.6, CUE.principe)) +
         0.2 * prog(t, CUE.ikigai, CUE.ikigai + 0.4) +
         0.3 * prog(t, CUE.quatre - 0.25, CUE.quatre)) -
@@ -75,11 +80,25 @@ const ensoState = (t: number) => {
 
 const orbState = (t: number, frame: number, fps: number) => {
   const e = ensoState(t);
-  // Point de départ : au centre, puis s'élève au-dessus du sol.
+  // Allumage (ressort) amorcé juste avant la première image : le point est déjà visible à t = 0.
+  const ignite = springAt(frame, fps, -0.1, { stiffness: 170, damping: 11, mass: 1 });
+  // Comète : centre -> départ de l'ensō -> tour du cercle -> retour au centre.
+  const start = polar(CX, CY, RING_R, ENSO_FROM);
+  const end = polar(CX, CY, RING_R, ENSO_FROM + ENSO_SWEEP);
+  let x: number = CX;
+  let y: number = CY;
+  if (t >= HOOK.launch && t < HOOK.travel) {
+    const k = prog(t, HOOK.launch, HOOK.travel, EASE.in);
+    [x, y] = [lerp(CX, start[0], k), lerp(CY, start[1], k)];
+  } else if (t >= HOOK.travel && t < HOOK.arrive) {
+    [x, y] = polar(CX, CY, RING_R, ENSO_FROM + e.sweep);
+  } else if (t >= HOOK.arrive && t < HOOK.land) {
+    const k = prog(t, HOOK.arrive, HOOK.land, EASE.overshoot);
+    [x, y] = [lerp(end[0], CX, k), lerp(end[1], CY, k)];
+  }
+  // Perspective : s'élève au-dessus du sol.
   const rise = prog(t, CUE.changer - 0.05, CUE.changer + 0.85, EASE.inOut);
-  const float = Math.sin(t * 2.1) * 4 * rise;
-  let x = CX;
-  let y = lerp(CY, HOVER_Y, rise) + float;
+  y = lerp(y, HOVER_Y + Math.sin(t * 2.1) * 4, rise);
   // Volonté : rejoint l'extrémité ouverte de l'ensō, puis referme le cercle.
   const go = prog(t, CUE.volonte, CUE.volonte + 0.7, EASE.inOut);
   const close = prog(t, CUE.creation, CUE.creation + 0.5, EASE.inOut);
@@ -91,14 +110,15 @@ const orbState = (t: number, frame: number, fps: number) => {
   if (close > 0) {
     [x, y] = [gx, gy];
   }
-  const bonheur = ORB_SPRING(frame, fps, CUE.bonheur);
-  const r =
-    7 + 4 * rise + 3 * bonheur * (1 - prog(t, CUE.si, CUE.volonte)) - 3 * go - 7 * prog(t, CUE.creation + 0.35, CUE.creation + 0.6);
-  // s'allume à l'ouverture, se fond dans l'anneau une fois le cercle refermé
-  const opacity = prog(t, 0, 0.45) * (1 - prog(t, CUE.creation + 0.35, CUE.creation + 0.6));
+  const bonheur = springAt(frame, fps, CUE.bonheur);
+  const moving = prog(t, HOOK.launch, HOOK.travel) * (1 - prog(t, HOOK.arrive, HOOK.land));
+  const r = 8 * ignite + 3 * rise + 3 * bonheur * (1 - prog(t, CUE.si, CUE.volonte)) - 3 * go;
+  // se fond dans l'anneau une fois le cercle refermé
+  const opacity = 1 - prog(t, CUE.creation + 0.35, CUE.creation + 0.6);
   const intensity =
     GLOW.on +
-    0.4 * prog(t, CUE.jai, CUE.jai + 0.3) +
+    1.1 * (1 - prog(t, 0.05, 0.7)) +
+    0.35 * moving +
     0.6 * bonheur * (1 - prog(t, CUE.si, CUE.si + 0.4)) +
     0.3 * prog(t, CUE.si, CUE.si + 0.25);
   return { x, y, r: Math.max(0, r), opacity, intensity };
@@ -117,6 +137,25 @@ const Orb: React.FC<{ x: number; y: number; r: number; intensity: number; color?
   </Glow>
 );
 
+const Ripple: React.FC<{
+  t: number;
+  start: number;
+  from: number;
+  to: number;
+  cx?: number;
+  cy?: number;
+  dur?: number;
+  color?: string;
+}> = ({ t, start, from, to, cx = CX, cy = CY, dur = 1.1, color = COLORS.white }) => {
+  const k = prog(t, start, start + dur, EASE.out);
+  if (k <= 0 || k >= 1) return null;
+  return (
+    <Glow intensity={0.8} opacity={0.6 * (1 - k)}>
+      <circle cx={cx} cy={cy} r={lerp(from, to, k)} fill="none" stroke={color} strokeWidth={STROKE.thin} />
+    </Glow>
+  );
+};
+
 const ActOne: React.FC<{ t: number; frame: number; fps: number }> = ({ t, frame, fps }) => {
   if (t >= CUE.quatre) return null;
   const e = ensoState(t);
@@ -133,12 +172,13 @@ const ActOne: React.FC<{ t: number; frame: number; fps: number }> = ({ t, frame,
     ],
     EASE.out,
   );
-  const scale = 1 + 0.03 * (prog(t, CUE.principeStart, CUE.ikigai + 0.6, EASE.inOut) - prog(t, CUE.elle, CUE.quatre, EASE.inOut));
-  // traînée de mouvement quand le point se déplace vite
+  const scale =
+    1 + 0.03 * (prog(t, CUE.principeStart, CUE.ikigai + 0.6, EASE.inOut) - prog(t, CUE.elle, CUE.quatre, EASE.inOut));
+  // traînée de mouvement : copies décroissantes quand le point se déplace vite
   const trail = Array.from({ length: TRAIL.copies }, (_, k) => {
     const tk = t - (k + 1) * TRAIL.step;
     const ok = orbState(tk, frame - (k + 1) * TRAIL.step * fps, fps);
-    const speed = Math.hypot(ok.x - o.x, ok.y - o.y);
+    const speed = Math.hypot(ok.x - o.x, ok.y - o.y) / (k + 1);
     return { ...ok, alpha: Math.pow(TRAIL.decay, k + 1) * Math.min(1, speed / 6) };
   });
   const ry = RING_R * Math.cos((e.tilt * Math.PI) / 180);
@@ -187,7 +227,7 @@ const ActOne: React.FC<{ t: number; frame: number; fps: number }> = ({ t, frame,
               cy={c.y}
               r={c.r * (1 - 0.12 * (k + 1))}
               fill={COLORS.white}
-              opacity={c.alpha * c.opacity * 0.7}
+              opacity={c.alpha * c.opacity * 0.75}
               filter="url(#soft-6)"
             />
           ),
@@ -197,26 +237,10 @@ const ActOne: React.FC<{ t: number; frame: number; fps: number }> = ({ t, frame,
           <Orb x={o.x} y={o.y} r={o.r} intensity={o.intensity * breathe(t, 1)} />
         </g>
       )}
+      <Ripple t={t} start={0.02} from={10} to={150} dur={0.9} />
+      <Ripple t={t} start={HOOK.land - 0.12} from={12} to={110} dur={0.8} />
       <Ripple t={t} start={CUE.creation + 0.45} from={RING_R} to={RING_R * 1.32} cy={CY} />
     </g>
-  );
-};
-
-const Ripple: React.FC<{ t: number; start: number; from: number; to: number; cx?: number; cy?: number; dur?: number }> = ({
-  t,
-  start,
-  from,
-  to,
-  cx = CX,
-  cy = CY,
-  dur = 1.1,
-}) => {
-  const k = prog(t, start, start + dur, EASE.out);
-  if (k <= 0 || k >= 1) return null;
-  return (
-    <Glow intensity={0.8} opacity={0.6 * (1 - k)}>
-      <circle cx={cx} cy={cy} r={lerp(from, to, k)} fill="none" stroke={COLORS.white} strokeWidth={STROKE.thin} />
-    </Glow>
   );
 };
 
@@ -286,17 +310,16 @@ const Title: React.FC<{ t: number }> = ({ t }) => {
 /* Actes 2-4 : les 4 cercles                                            */
 /* ------------------------------------------------------------------ */
 
-/** Rotation lente du diagramme pendant l'éclosion. */
-const bloomRotation = (t: number) => 45 * prog(t, CUE.pleinement, CUE.hesite + 0.6, EASE.inOut);
+/** Rotation du diagramme avant la métamorphose : les cercles rejoignent les diagonales (ailes). */
+const bloomRotation = (t: number) => 45 * prog(t, CUE.pleinement, METAMORPH.start + 0.05, EASE.inOut);
 
 const petalState = (i: number, t: number, frame: number, fps: number) => {
   // Séparation de l'anneau en 4 (légèrement décalée par cercle)
   const s0 = CUE.quatre + i * 0.05;
   const split = prog(t, s0, s0 + 0.75, EASE.overshoot);
-  const bloomSpring = ORB_SPRING(frame, fps, CUE.epanouir);
-  const merge = prog(t, CUE.hesite, CUE.enregistrer, EASE.inOut);
-  const d = (PETAL_D * split + 18 * bloomSpring) * (1 - merge);
-  const r = lerp(RING_R, PETAL_R, prog(t, s0, s0 + 0.75, EASE.out)) + 5 * bloomSpring - (PETAL_R + 5 - 90) * merge;
+  const bloomSpring = springAt(frame, fps, CUE.epanouir);
+  const d = PETAL_D * split + 12 * bloomSpring;
+  const r = lerp(RING_R, PETAL_R, prog(t, s0, s0 + 0.75, EASE.out)) + 4 * bloomSpring;
   const rot = bloomRotation(t);
   const [dx, dy] = PILLARS[i].dir;
   const a = (rot * Math.PI) / 180;
@@ -318,17 +341,16 @@ const petalState = (i: number, t: number, frame: number, fps: number) => {
   intensity = lerp(intensity, GLOW.on, equal);
   intensity = lerp(intensity, 0.62, prog(t, CUE.sens - 0.1, CUE.sens + 0.3) * (1 - prog(t, CUE.etDe, CUE.pleinement)));
   intensity = lerp(intensity, 1.15, prog(t, CUE.pleinement, CUE.pleinement + 0.4));
-  intensity = lerp(intensity, GLOW.active, prog(t, CUE.epanouir, CUE.epanouir + 0.5));
-  intensity = lerp(intensity, GLOW.on, merge);
+  intensity = lerp(intensity, GLOW.active, prog(t, CUE.epanouir, CUE.epanouir + 0.4));
 
   let color = mixColor(dim, 0, 1, COLORS.white, COLORS.grey);
   color = mixColor(Math.max(lit, pre * 0.45), 0, 1, color, COLORS.white);
-  color = mixColor(t, CUE.epanouir, CUE.epanouir + 0.5, color, PILLARS[i].bloom);
-  color = mixColor(t, CUE.hesite, CUE.enregistrer, color, COLORS.white, EASE.inOut);
+  // une seule couleur pour l'accomplissement : le violet
+  color = mixColor(t, CUE.epanouir - 0.05, CUE.epanouir + 0.35, color, COLORS.violet);
   const opacity = lerp(1, 0.78, settle * (i < 3 ? 1 : 0) * (1 - equal));
-  // Quand les 4 copies se superposent (séparation, fusion), on évite que leurs halos s'additionnent.
-  const overlap = lerp(0.3, 1, split) * lerp(1, 0.28, merge);
-  return { cx, cy, r, d, color, intensity: intensity * overlap, opacity, merge };
+  // Pendant la séparation, les 4 copies se superposent : on évite que leurs halos s'additionnent.
+  const overlap = lerp(0.3, 1, split);
+  return { cx, cy, r, color, intensity: intensity * overlap, opacity };
 };
 
 /** Zone centrale (intersection des 4 cercles) : carré curviligne bordé de 4 arcs. */
@@ -367,14 +389,17 @@ const Label: React.FC<{ i: number; t: number; color: string; opacity: number }> 
 };
 
 const Petals: React.FC<{ t: number; frame: number; fps: number }> = ({ t, frame, fps }) => {
-  if (t < CUE.quatre || t > CUE.enregistrer + 0.02) return null;
+  if (t < CUE.quatre || t >= METAMORPH.start) return null;
   const states = PILLARS.map((_, i) => petalState(i, t, frame, fps));
-  const fill = prog(t, CUE.epanouir, CUE.epanouir + 0.6) * (1 - prog(t, CUE.hesite, CUE.enregistrer));
+  const fill = prog(t, CUE.epanouir, CUE.epanouir + 0.4);
+  // milieu de la partie de chaque cercle qui n'appartient qu'à son pilier
+  const inner = Math.sqrt(PETAL_R * PETAL_R - PETAL_D * PETAL_D);
+  const iconOffset = (inner + PETAL_D + PETAL_R) / 2;
   return (
     <g>
       {states.map((s, i) => (
         <g key={i} opacity={s.opacity}>
-          {fill > 0.01 && <circle cx={s.cx} cy={s.cy} r={s.r} fill={s.color} opacity={0.045 * fill} />}
+          {fill > 0.01 && <circle cx={s.cx} cy={s.cy} r={s.r} fill={s.color} opacity={0.06 * fill} />}
           <Glow intensity={s.intensity * breathe(t, i * 1.3)}>
             <circle cx={s.cx} cy={s.cy} r={s.r} fill="none" stroke={s.color} strokeWidth={STROKE.main} />
           </Glow>
@@ -382,24 +407,18 @@ const Petals: React.FC<{ t: number; frame: number; fps: number }> = ({ t, frame,
       ))}
       {PILLARS.map((p, i) => {
         const s = states[i];
-        const draw = prog(t, CUE.pillarWord[i] - 0.12, CUE.pillarWord[i] + 0.5, EASE.out);
+        const start = CUE.pillarWord[i] - 0.12;
         const out = 1 - prog(t, CUE.remettre, CUE.remettre + 0.35, EASE.in);
-        if (draw <= 0 || out <= 0) return null;
-        // milieu de la partie du cercle qui n'appartient qu'à ce pilier
-        const inner = Math.sqrt(PETAL_R * PETAL_R - PETAL_D * PETAL_D);
-        const off = (inner + PETAL_D + PETAL_R) / 2;
-        const ix = CX + p.dir[0] * off;
-        const iy = CY + p.dir[1] * off;
+        if (t < start || out <= 0) return null;
+        const Icon = PILLAR_ICONS[p.icon];
         return (
-          <g key={`icon-${i}`} opacity={out * s.opacity}>
+          <g
+            key={`icon-${i}`}
+            opacity={out * s.opacity}
+            transform={`translate(${CX + p.dir[0] * iconOffset} ${CY + p.dir[1] * iconOffset})`}
+          >
             <Glow intensity={s.intensity * 0.8}>
-              <TracedPath
-                d={ICON_PATHS[p.icon]}
-                progress={draw}
-                stroke={s.color}
-                strokeWidth={STROKE.main}
-                transform={`translate(${ix} ${iy})`}
-              />
+              <Icon t={t} start={start} color={s.color} />
             </Glow>
           </g>
         );
@@ -407,11 +426,6 @@ const Petals: React.FC<{ t: number; frame: number; fps: number }> = ({ t, frame,
       {PILLARS.map((_, i) => (
         <Label key={`label-${i}`} i={i} t={t} color={states[i].color} opacity={states[i].opacity} />
       ))}
-      {fill > 0.01 && (
-        <g opacity={fill}>
-          <Orb x={CX} y={CY} r={6} intensity={GLOW.active * breathe(t, 0.5)} />
-        </g>
-      )}
     </g>
   );
 };
@@ -423,7 +437,7 @@ const Compass: React.FC<{ t: number; frame: number; fps: number }> = ({ t, frame
   if (core <= 0 || out <= 0) return null;
   const path = centerPath(PETAL_D, PETAL_R);
   const needleIn = prog(t, CUE.trouver - 0.05, CUE.trouver + 0.3, EASE.out);
-  const swing = ORB_SPRING(frame, fps, CUE.trouver);
+  const swing = springAt(frame, fps, CUE.trouver);
   const angle = -150 * (1 - swing);
   const line = prog(t, CUE.sens - 0.08, CUE.sens + 0.55, EASE.out);
   const top = CY - 84;
@@ -432,17 +446,20 @@ const Compass: React.FC<{ t: number; frame: number; fps: number }> = ({ t, frame
     <g opacity={out}>
       <path d={path} fill={COLORS.yellow} opacity={0.13 * core} />
       <Glow intensity={GLOW.on * core * breathe(t)}>
-        <TracedPath d={path} progress={core} stroke={COLORS.yellow} strokeWidth={STROKE.main} />
+        <TracedPath d={path} progress={core} stroke={COLORS.yellow} />
       </Glow>
       {needleIn > 0.01 && (
-        <g
-          opacity={needleIn}
-          transform={`translate(${CX} ${CY}) rotate(${angle}) scale(${lerp(0.7, 1, needleIn)})`}
-        >
+        <g opacity={needleIn} transform={`translate(${CX} ${CY}) rotate(${angle}) scale(${lerp(0.7, 1, needleIn)})`}>
           <Glow intensity={GLOW.active}>
             {/* aiguille bicolore : nord plein (jaune), sud en contour (gris) */}
             <path d="M0 -84 L12 0 L-12 0 Z" fill={COLORS.yellow} />
-            <path d="M12 0 L0 70 L-12 0" fill={COLORS.bg} stroke={COLORS.grey} strokeWidth={STROKE.thin} strokeLinejoin="round" />
+            <path
+              d="M12 0 L0 70 L-12 0"
+              fill={COLORS.bg}
+              stroke={COLORS.grey}
+              strokeWidth={STROKE.thin}
+              strokeLinejoin="round"
+            />
             <circle r={4} fill={COLORS.bg} stroke={COLORS.yellow} strokeWidth={STROKE.thin} />
           </Glow>
         </g>
@@ -470,30 +487,128 @@ const Compass: React.FC<{ t: number; frame: number; fps: number }> = ({ t, frame
   );
 };
 
-/* Éclosion : étincelles créatives */
+/* ------------------------------------------------------------------ */
+/* Métamorphose : les 4 cercles deviennent les 4 ailes d'un papillon    */
+/* ------------------------------------------------------------------ */
+
+const BOOKMARK = resample(bookmarkPts(CX, CY, 150, 200, 46), WING_SAMPLES);
+
+/** Angle de battement (degrés) : 0 = ailes à plat, 90 = ailes repliées (vues par la tranche). */
+const flapAngle = (t: number) => {
+  const ft = t - METAMORPH.end;
+  const amp = 52 * prog(t, METAMORPH.end - 0.1, METAMORPH.end + 0.2);
+  const flap = ft > 0 ? (amp * (1 - Math.cos((2 * Math.PI * ft) / FLAP_PERIOD))) / 2 : 0;
+  return lerp(flap, 84, prog(t, CUE.hesite, CUE.hesite + 0.4, EASE.inOut));
+};
+
+const Butterfly: React.FC<{ t: number; frame: number; fps: number }> = ({ t, frame, fps }) => {
+  const vanish = prog(t, BOOKMARK_UNFOLD.start, BOOKMARK_UNFOLD.start + 0.15);
+  if (t < METAMORPH.start || vanish >= 1) return null;
+  const m = prog(t, METAMORPH.start, METAMORPH.end, EASE.inOut);
+  const kx = Math.cos((flapAngle(t) * Math.PI) / 180);
+  const fold = prog(t, CUE.hesite, CUE.hesite + 0.4, EASE.inOut);
+  const color = mixColor(t, CUE.hesite, CUE.hesite + 0.4, COLORS.violet, COLORS.white);
+  const intensity = lerp(GLOW.active, GLOW.on, fold) * breathe(t);
+  const wings = PILLARS.map((_, i) => {
+    const s = petalState(i, t, frame, fps);
+    const target = wingAt(i, CX, CY);
+    const pts = morph(circleForWing(i, s.cx, s.cy, s.r), target, m);
+    return { pts: scalePts(pts, kx, 1, CX, CY), inner: scalePts(innerWing(target), kx, 1, CX, CY) };
+  });
+  const detail = prog(t, METAMORPH.start + 0.35, METAMORPH.end + 0.1, EASE.out) * (1 - fold);
+  const body = prog(t, METAMORPH.start + 0.3, METAMORPH.end, EASE.out);
+  return (
+    <g opacity={1 - vanish}>
+      {wings.map((w, i) => (
+        <path key={`fill-${i}`} d={toPath(w.pts, true)} fill={COLORS.violet} opacity={0.07 * m * (1 - fold)} />
+      ))}
+      <Glow intensity={intensity}>
+        {wings.map((w, i) => (
+          <path
+            key={`wing-${i}`}
+            d={toPath(w.pts, true)}
+            fill="none"
+            stroke={color}
+            strokeWidth={STROKE.main}
+            strokeLinejoin="round"
+          />
+        ))}
+      </Glow>
+      {detail > 0.01 && (
+        <Glow intensity={GLOW.rest}>
+          {wings.map((w, i) => (
+            <path
+              key={`inner-${i}`}
+              d={toPath(w.inner, true)}
+              fill="none"
+              stroke={COLORS.violet}
+              strokeWidth={STROKE.thin}
+              opacity={0.6 * detail}
+            />
+          ))}
+        </Glow>
+      )}
+      {body > 0.01 && (
+        <g transform={`translate(${CX} ${CY}) scale(${BUTTERFLY_SCALE})`} opacity={1 - fold}>
+          <Glow intensity={GLOW.active}>
+            <TracedPath d={BODY.thorax} progress={body} stroke={COLORS.violet} fill="rgba(181,124,255,0.28)" />
+            <TracedPath d={BODY.antennaRight} progress={body} stroke={COLORS.violet} strokeWidth={STROKE.thin} />
+            <TracedPath d={BODY.antennaLeft} progress={body} stroke={COLORS.violet} strokeWidth={STROKE.thin} />
+            <circle
+              cy={BODY.head.cy}
+              r={BODY.head.r * body}
+              fill="rgba(181,124,255,0.28)"
+              stroke={COLORS.violet}
+              strokeWidth={STROKE.main}
+            />
+            {BODY.antennaTips.map(([x, y], k) => (
+              <circle
+                key={k}
+                cx={x}
+                cy={y}
+                r={3 * prog(t, METAMORPH.end - 0.1, METAMORPH.end + 0.15)}
+                fill={COLORS.violet}
+              />
+            ))}
+          </Glow>
+        </g>
+      )}
+    </g>
+  );
+};
+
+/* Étincelles créatives libérées par la métamorphose */
 const SPARKS = (() => {
   const rand = seeded(42);
-  return Array.from({ length: 22 }, () => ({
+  return Array.from({ length: 26 }, (_, i) => ({
     angle: rand() * 360,
-    dist: 230 + rand() * 230,
-    delay: rand() * 0.9,
+    dist: 180 + rand() * 260,
+    delay: rand() * 0.8,
     r: 1.6 + rand() * 1.8,
-    life: 1.2 + rand() * 0.8,
+    life: 1.0 + rand() * 0.8,
+    violet: i % 3 !== 0,
   }));
 })();
 
 const Sparks: React.FC<{ t: number }> = ({ t }) => {
-  const t0 = CUE.epanouir + 0.35;
-  if (t < t0 || t > t0 + 3.2) return null;
-  const rot = bloomRotation(t);
+  const t0 = METAMORPH.start + 0.4;
+  if (t < t0 || t > t0 + 2.6) return null;
   return (
     <Glow intensity={GLOW.on}>
       {SPARKS.map((s, i) => {
         const k = prog(t, t0 + s.delay, t0 + s.delay + s.life, EASE.out);
         if (k <= 0 || k >= 1) return null;
-        const [x, y] = polar(CX, CY, lerp(60, s.dist, k), s.angle + rot * 0.4);
-        const a = Math.sin(Math.PI * k);
-        return <circle key={i} cx={x} cy={y} r={s.r} fill={COLORS.white} opacity={a * 0.9} />;
+        const [x, y] = polar(CX, CY, lerp(70, s.dist, k), s.angle - 25 * k);
+        return (
+          <circle
+            key={i}
+            cx={x}
+            cy={y - 40 * k}
+            r={s.r}
+            fill={s.violet ? COLORS.violet : COLORS.white}
+            opacity={Math.sin(Math.PI * k) * 0.9}
+          />
+        );
       })}
     </Glow>
   );
@@ -503,28 +618,26 @@ const Sparks: React.FC<{ t: number }> = ({ t }) => {
 /* Acte 5 : enregistre la vidéo -> point de lumière                     */
 /* ------------------------------------------------------------------ */
 
-const N = 160;
-const MERGED = circlePts(CX, CY, 90, N);
-const BOOKMARK = resample(bookmarkPts(CX, CY, 150, 200, 46), N);
-const SMALL = circlePts(CX, CY, 60, N);
+const SMALL = circlePts(CX, CY, 60, WING_SAMPLES);
 
 const Outro: React.FC<{ t: number }> = ({ t }) => {
-  if (t < CUE.enregistrer) return null;
-  const toMark = prog(t, CUE.enregistrer, CUE.enregistrer + 0.55, EASE.inOut);
+  if (t < BOOKMARK_UNFOLD.start) return null;
+  const unfold = prog(t, BOOKMARK_UNFOLD.start, BOOKMARK_UNFOLD.end, EASE.overshoot);
   const toCircle = prog(t, CUE.aBientot, CUE.aBientot + 0.5, EASE.inOut);
   const shrink = prog(t, CUE.aBientot + 0.45, CUE.aBientot + 1.0, EASE.inOut);
-  let pts = morph(MERGED, BOOKMARK, toMark);
-  if (toCircle > 0) pts = morph(BOOKMARK, SMALL, toCircle);
+  const mark = scalePts(BOOKMARK, lerp(0.05, 1, unfold), lerp(1.3, 1, unfold), CX, CY);
+  const pts = morph(mark, SMALL, toCircle);
   const color = mixColor(t, CUE.video - 0.05, CUE.video + 0.35, COLORS.white, COLORS.blue);
   const stroke = toCircle > 0 ? mixColor(toCircle, 0, 1, color, COLORS.white) : color;
   const fillUp = prog(t, CUE.video, CUE.video + 0.7, EASE.out) * (1 - toCircle);
-  const check = prog(t, CUE.oublier - 0.05, CUE.oublier + 0.4, EASE.out) * (1 - prog(t, CUE.aBientot, CUE.aBientot + 0.3));
+  const check =
+    prog(t, CUE.oublier - 0.05, CUE.oublier + 0.4, EASE.out) * (1 - prog(t, CUE.aBientot, CUE.aBientot + 0.3));
   const intensity = GLOW.on + 0.45 * prog(t, CUE.oublier, CUE.oublier + 0.3) * (1 - toCircle);
-  const shapeOpacity = 1 - shrink;
+  const shapeOpacity = (1 - shrink) * prog(t, BOOKMARK_UNFOLD.start, BOOKMARK_UNFOLD.start + 0.1);
   const markTop = CY - 100;
   const markBottom = CY + 100;
   // Point final (boucle avec l'ouverture)
-  const dotR = lerp(14, 7, prog(t, CUE.aBientot + 0.9, CUE.aBientot + 1.4, EASE.out));
+  const dotR = lerp(14, 8, prog(t, CUE.aBientot + 0.9, CUE.aBientot + 1.4, EASE.out));
   return (
     <g>
       <defs>
@@ -538,32 +651,20 @@ const Outro: React.FC<{ t: number }> = ({ t }) => {
       </defs>
       {fillUp > 0.01 && (
         <g clipPath="url(#mark-clip)">
-          <rect
-            x={CX - 80}
-            y={lerp(markBottom, markTop, fillUp)}
-            width={160}
-            height={markBottom - markTop}
-            fill="url(#mark-fill)"
-          />
+          <rect x={CX - 80} y={lerp(markBottom, markTop, fillUp)} width={160} height={markBottom - markTop} fill="url(#mark-fill)" />
         </g>
       )}
       {shapeOpacity > 0.01 && (
         <g opacity={shapeOpacity}>
           <Glow intensity={intensity * breathe(t)}>
-            <path
-              d={toPath(pts, true)}
-              fill="none"
-              stroke={stroke}
-              strokeWidth={STROKE.main}
-              strokeLinejoin="round"
-            />
+            <path d={toPath(pts, true)} fill="none" stroke={stroke} strokeWidth={STROKE.main} strokeLinejoin="round" />
           </Glow>
         </g>
       )}
       {check > 0.01 && (
         <Glow intensity={GLOW.active}>
           <TracedPath
-            d={ICON_PATHS.check}
+            d={CHECK_PATH}
             progress={check}
             stroke={COLORS.white}
             strokeWidth={STROKE.bold}
@@ -585,35 +686,36 @@ const Outro: React.FC<{ t: number }> = ({ t }) => {
 
 /* ------------------------------------------------------------------ */
 
-const cameraZoom = (t: number) =>
-  keyframes(t, [
+const cameraZoom = (t: number) => {
+  // Accroche : on démarre serré sur le point de lumière et la caméra recule pendant que la comète trace l'ensō.
+  const hook = lerp(1.2, 1, prog(t, 0, HOOK.land + 0.2, EASE.out));
+  const drift = keyframes(t, [
     [0, CAMERA.zoomFrom],
     [CUE.quatre, CAMERA.zoomFrom + 0.06],
     [CUE.quatre + 0.9, CAMERA.zoomFrom],
-    [CUE.pleinement, CAMERA.zoomFrom + 0.045],
-    [CUE.hesite, CAMERA.zoomFrom + 0.02],
+    [CUE.pleinement, CAMERA.zoomFrom + 0.04],
+    [METAMORPH.end, CAMERA.zoomFrom + 0.01],
     [IKIGAI_DURATION_SEC, CAMERA.zoomTo],
   ]);
+  return hook * drift;
+};
 
 const ambientLights = (t: number): AmbientLight[] => {
-  const bloom = prog(t, CUE.epanouir, CUE.epanouir + 0.6) * (1 - prog(t, CUE.hesite, CUE.enregistrer));
+  const violet = prog(t, CUE.epanouir - 0.05, CUE.epanouir + 0.5) * (1 - prog(t, CUE.hesite, CUE.hesite + 0.4));
   const yellowTitle = prog(t, CUE.ikigai, CUE.ikigai + 0.5) * (1 - prog(t, CUE.elle, CUE.elle + 0.4));
   const yellowCore = prog(t, CUE.equilibre, CUE.equilibre + 0.6) * (1 - prog(t, CUE.etDe, CUE.pleinement));
   const blue = prog(t, CUE.video, CUE.video + 0.5) * (1 - prog(t, CUE.aBientot, CUE.aBientot + 0.5));
-  const base = 0.6 + 0.4 * prog(t, CUE.decouvert, CUE.japonaise) + 0.35 * prog(t, CUE.bonheur, CUE.bonheur + 0.5) * (1 - prog(t, CUE.si, CUE.volonte));
-  const white = base * (1 - Math.max(yellowTitle, yellowCore, blue, bloom) * 0.6);
-  const rot = (bloomRotation(t) * Math.PI) / 180;
+  const base =
+    0.6 +
+    0.5 * (1 - prog(t, 0, 0.8)) +
+    0.4 * prog(t, HOOK.travel, HOOK.arrive) +
+    0.35 * prog(t, CUE.bonheur, CUE.bonheur + 0.5) * (1 - prog(t, CUE.si, CUE.volonte));
+  const white = base * (1 - Math.max(yellowTitle, yellowCore, blue, violet) * 0.6);
   return [
     { color: COLORS.white, level: white },
     { color: COLORS.yellow, level: Math.max(yellowTitle, yellowCore) * 0.9 },
     { color: COLORS.blue, level: blue * 0.9 },
-    ...PILLARS.map((p) => ({
-      color: p.bloom,
-      level: bloom * 0.55,
-      radius: 360,
-      x: CX + 160 * (p.dir[0] * Math.cos(rot) - p.dir[1] * Math.sin(rot)),
-      y: CY + 160 * (p.dir[0] * Math.sin(rot) + p.dir[1] * Math.cos(rot)),
-    })),
+    { color: COLORS.violet, level: violet * 1.1 },
   ];
 };
 
@@ -623,14 +725,15 @@ export const Ikigai: React.FC = () => {
   const t = frame / fps;
   return (
     <AbsoluteFill style={{ backgroundColor: COLORS.bgEdge }}>
-      {/* voix off mono -> stéréo : +3 dB pour retrouver le niveau d'origine */}
-      <Audio src={staticFile('audio/ikigai-voix-off.mp3')} volume={Math.SQRT2} />
+      <Audio src={staticFile('audio/ikigai-voix-off-edit.wav')} volume={AUDIO.voice} />
+      <SoundDesign durationSec={IKIGAI_DURATION_SEC} />
       <Stage zoom={cameraZoom(t)} ambient={ambientLights(t)} overlay={<Subtitles t={t} screens={CAPTIONS} />}>
         <svg width={VIDEO.width} height={VIDEO.height} viewBox={`0 0 ${VIDEO.width} ${VIDEO.height}`}>
           <GlowDefs />
           <ActOne t={t} frame={frame} fps={fps} />
           <Petals t={t} frame={frame} fps={fps} />
           <Compass t={t} frame={frame} fps={fps} />
+          <Butterfly t={t} frame={frame} fps={fps} />
           <Sparks t={t} />
           <Outro t={t} />
         </svg>

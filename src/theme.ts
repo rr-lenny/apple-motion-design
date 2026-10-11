@@ -29,6 +29,8 @@ export const COLORS = {
   yellow: '#FFD93B',
   /** Progression, case cochée, accompli. */
   blue: '#2D9CFF',
+  /** Épanouissement, métamorphose : couleur unique du moment final d'accomplissement. */
+  violet: '#B57CFF',
 } as const;
 
 export type ColorName = keyof typeof COLORS;
@@ -122,6 +124,8 @@ export const EASE = {
   inOut: Easing.inOut(Easing.cubic),
   /** Sorties. */
   in: Easing.in(Easing.cubic),
+  /** Trajectoire déjà lancée : part vite et ralentit (enchaîne une accélération sans à-coup). */
+  glide: Easing.out(Easing.quad),
   /** Arrivée avec micro-overshoot (~3 %). */
   overshoot: Easing.out(Easing.back(0.9)),
 } as const;
@@ -150,12 +154,27 @@ export const CAMERA = {
 
 /** Traînées de mouvement sur les objets rapides. */
 export const TRAIL = {
-  copies: 4,
+  copies: 5,
   /** Décalage temporel entre deux copies (s). */
-  step: 0.035,
+  step: 0.02,
   /** Opacité conservée d'une copie à la suivante. */
   decay: 0.55,
 } as const;
 
 /** Fondu à travers le noir entre deux scènes : 400-600 ms. */
 export const TRANSITION = { fadeSec: 0.5 } as const;
+
+/**
+ * Mixage. Les effets (public/sfx) sont normalisés à -1 dBFS : leur niveau final est
+ * `sfx` x le gain propre à chaque son. La voix reste devant, ~10-15 dB au-dessus des effets.
+ */
+export const AUDIO = {
+  /** Voix off mono -> stéréo : +3 dB pour retrouver le niveau d'origine. */
+  voice: Math.SQRT2,
+  /** Bus des effets ponctuels. */
+  sfx: 0.5,
+  /** Nappe d'ambiance continue (très basse). */
+  bed: 0.075,
+  /** Fondus d'entrée / sortie de la nappe (s). */
+  bedFade: 1.2,
+} as const;

@@ -89,3 +89,61 @@ export const bookmarkPts = (cx: number, cy: number, w: number, h: number, notch:
     ...arcPts(l + radius, top + radius, radius, 180, 270),
   ];
 };
+
+/** Cercle échantillonné à partir de l'angle `startDeg`, sens horaire. */
+export const circlePtsFrom = (cx: number, cy: number, r: number, n: number, startDeg: number): Pt[] =>
+  Array.from({ length: n }, (_, i) => polar(cx, cy, r, startDeg + (360 * i) / n));
+
+/**
+ * Échantillonne un chemin SVG simple (commandes absolues M, L, C, Z) en polyligne,
+ * puis le ré-échantillonne en n points équidistants (pour les morphings).
+ */
+export const samplePath = (d: string, n: number, curveSteps = 24): Pt[] => {
+  const tokens = d.match(/[MLCZ]|-?\d*\.?\d+(?:e-?\d+)?/gi) ?? [];
+  const pts: Pt[] = [];
+  let i = 0;
+  let cmd = '';
+  let cur: Pt = [0, 0];
+  const num = () => parseFloat(tokens[i++]);
+  while (i < tokens.length) {
+    if (/[MLCZ]/i.test(tokens[i])) cmd = tokens[i++].toUpperCase();
+    if (cmd === 'M' || cmd === 'L') {
+      cur = [num(), num()];
+      pts.push(cur);
+    } else if (cmd === 'C') {
+      const p1: Pt = [num(), num()];
+      const p2: Pt = [num(), num()];
+      const p3: Pt = [num(), num()];
+      const p0 = cur;
+      for (let k = 1; k <= curveSteps; k++) {
+        const u = k / curveSteps;
+        const a = (1 - u) ** 3;
+        const b = 3 * (1 - u) ** 2 * u;
+        const c = 3 * (1 - u) * u ** 2;
+        const e = u ** 3;
+        pts.push([a * p0[0] + b * p1[0] + c * p2[0] + e * p3[0], a * p0[1] + b * p1[1] + c * p2[1] + e * p3[1]]);
+      }
+      cur = p3;
+    } else if (i < tokens.length && !/[MLCZ]/i.test(tokens[i])) {
+      // Z suivi d'un nombre : chemin mal formé, on avance pour ne pas boucler
+      i++;
+    }
+  }
+  // supprime le dernier point s'il recouvre le premier (chemin fermé)
+  const [fx, fy] = pts[0];
+  const [lx, ly] = pts[pts.length - 1];
+  if (Math.hypot(fx - lx, fy - ly) < 0.5) pts.pop();
+  return resample(pts, n);
+};
+
+export const translatePts = (pts: ReadonlyArray<Pt>, dx: number, dy: number): Pt[] =>
+  pts.map(([x, y]) => [x + dx, y + dy] as Pt);
+
+/** Homothétie autour d'un point. */
+export const scalePts = (pts: ReadonlyArray<Pt>, sx: number, sy: number, ox: number, oy: number): Pt[] =>
+  pts.map(([x, y]) => [ox + (x - ox) * sx, oy + (y - oy) * sy] as Pt);
+
+export const centroid = (pts: ReadonlyArray<Pt>): Pt => {
+  const s = pts.reduce((acc, [x, y]) => [acc[0] + x, acc[1] + y], [0, 0]);
+  return [s[0] / pts.length, s[1] / pts.length];
+};
