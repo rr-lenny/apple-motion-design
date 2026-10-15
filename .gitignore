@@ -3,3 +3,6 @@ out/*
 !out/ikigai.mp4
 .DS_Store
 *.log
+__pycache__/
+!out/agir-test-3s.mp4
+!out/agir-legendes-on-off.png

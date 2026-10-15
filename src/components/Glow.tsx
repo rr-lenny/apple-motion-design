@@ -55,3 +55,50 @@ export const Glow: React.FC<{
     </g>
   );
 };
+
+/**
+ * Bloom teinté : le trait garde sa couleur (ex. contour blanc) mais ses halos prennent
+ * `color` (ex. glow bleu). `id` doit être unique dans le <svg>.
+ */
+export const TintGlow: React.FC<{
+  id: string;
+  color: string;
+  intensity?: number;
+  opacity?: number;
+  /** Ce qui rayonne, si différent du contenu (ex. les traits seuls, sans les remplissages). */
+  halo?: React.ReactNode;
+  children: React.ReactNode;
+}> = ({ id, color, intensity = GLOW.on, opacity = 1, halo, children }) => {
+  const near = Math.min(1, GLOW.near.opacity * intensity);
+  const wide = Math.min(1, GLOW.wide.opacity * intensity);
+  if (opacity <= 0.001) return null;
+  const layer = (name: string, blur: number, gain: number) => (
+    <filter id={`${id}-${name}`} filterUnits="userSpaceOnUse" {...REGION} colorInterpolationFilters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation={blur} result="b" />
+      <feFlood floodColor={color} result="c" />
+      <feComposite in="c" in2="b" operator="in" result="t" />
+      <feComponentTransfer in="t">
+        <feFuncA type="linear" slope={gain} />
+      </feComponentTransfer>
+    </filter>
+  );
+  return (
+    <g opacity={opacity}>
+      <defs>
+        {layer('wide', GLOW.wide.blur, GLOW.wideGain)}
+        {layer('near', GLOW.near.blur, GLOW.nearGain)}
+      </defs>
+      {wide > 0.003 && (
+        <g filter={`url(#${id}-wide)`} opacity={wide}>
+          {halo ?? children}
+        </g>
+      )}
+      {near > 0.003 && (
+        <g filter={`url(#${id}-near)`} opacity={near}>
+          {halo ?? children}
+        </g>
+      )}
+      {children}
+    </g>
+  );
+};

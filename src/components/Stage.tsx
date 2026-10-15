@@ -67,10 +67,12 @@ export const Stage: React.FC<{
   zoom: number;
   ambient: AmbientLight[];
   overlay?: React.ReactNode;
+  /** Point focal (origine du zoom, centre du vignettage). Par défaut : LAYOUT.focus. */
+  focus?: { x: number; y: number };
   children: React.ReactNode;
-}> = ({ zoom, ambient, overlay, children }) => {
+}> = ({ zoom, ambient, overlay, focus = { x: LAYOUT.focusX, y: LAYOUT.focusY }, children }) => {
   const bgZoom = 1 + (zoom - 1) * CAMERA.parallax;
-  const origin = `${LAYOUT.focusX}px ${LAYOUT.focusY}px`;
+  const origin = `${focus.x}px ${focus.y}px`;
   return (
     <AbsoluteFill style={{ backgroundColor: COLORS.bg }}>
       <AbsoluteFill style={{ transform: `scale(${bgZoom})`, transformOrigin: origin }}>
@@ -78,8 +80,8 @@ export const Stage: React.FC<{
           .filter((a) => a.level > 0.002)
           .map((a, i) => {
             const r = a.radius ?? AMBIENT.radius;
-            const x = a.x ?? LAYOUT.focusX;
-            const y = a.y ?? LAYOUT.focusY;
+            const x = a.x ?? focus.x;
+            const y = a.y ?? focus.y;
             return (
               <div
                 key={i}
@@ -103,7 +105,7 @@ export const Stage: React.FC<{
       <AbsoluteFill style={{ transform: `scale(${zoom})`, transformOrigin: origin }}>{children}</AbsoluteFill>
       <AbsoluteFill
         style={{
-          background: `radial-gradient(ellipse 75% 60% at 50% ${(LAYOUT.focusY / VIDEO.height) * 100}%, rgba(0,0,0,0) ${
+          background: `radial-gradient(ellipse 75% 60% at 50% ${(focus.y / VIDEO.height) * 100}%, rgba(0,0,0,0) ${
             VIGNETTE.inner * 100
           }%, rgba(0,0,0,${VIGNETTE.strength}) 100%)`,
         }}

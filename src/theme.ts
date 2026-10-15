@@ -31,6 +31,8 @@ export const COLORS = {
   blue: '#2D9CFF',
   /** Épanouissement, métamorphose : couleur unique du moment final d'accomplissement. */
   violet: '#B57CFF',
+  /** Doute, pensées qui tournent en boucle (touches ponctuelles). */
+  purple: '#A855FF',
 } as const;
 
 export type ColorName = keyof typeof COLORS;
