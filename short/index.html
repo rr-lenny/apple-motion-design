@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Short vertical</title>
+<style>
+  :root {
+    --bg: #F5F5F7;
+    --ink: #1D1D1F;
+    --accent: #0071E3;
+    --radius: 24px;
+    --shadow: 0 30px 80px rgba(0, 0, 0, 0.10), 0 8px 24px rgba(0, 0, 0, 0.06);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #111; overflow: hidden; height: 100%; }
+  body.render { background: var(--bg); }
+
+  #stage {
+    position: absolute; left: 0; top: 0;
+    width: 1080px; height: 1920px;
+    background: var(--bg);
+    overflow: hidden;
+    transform-origin: 0 0;
+    font-family: "SF Pro Display", "Inter Display", "Inter", system-ui, sans-serif;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+  #scene { position: absolute; inset: 0; transform-origin: 50% 50%; }
+  .abs { position: absolute; will-change: transform, opacity, filter; }
+
+  /* Captions */
+  .phrase {
+    position: absolute; left: 90px; width: 900px;
+    display: flex; flex-wrap: wrap; justify-content: center;
+    column-gap: 0.25em; row-gap: 0;
+    font-size: 80px; font-weight: 600; line-height: 1.12; letter-spacing: -0.025em;
+    text-align: center;
+  }
+  .phrase .w { display: inline-block; white-space: nowrap; will-change: transform, opacity, filter; }
+  .phrase .w.key { color: var(--accent); font-weight: 700; }
+
+  /* Démo : dossier, cartes, verre dépoli */
+  #demo { position: absolute; left: 90px; top: 690px; width: 900px; height: 900px; }
+  #folder {
+    left: 150px; top: 130px; width: 600px; height: 620px;
+    background: linear-gradient(180deg, #DCDCE1, #CFCFD5);
+    border-radius: 36px;
+  }
+  #folder::before {
+    content: ""; position: absolute; left: 0; top: -46px; width: 250px; height: 90px;
+    background: #DCDCE1; border-radius: 30px 30px 0 0;
+  }
+  .card {
+    width: 380px; height: 500px; border-radius: var(--radius);
+    background: #fff; overflow: hidden; box-shadow: var(--shadow);
+    transform-origin: 50% 85%;
+    border: 6px solid #fff;
+  }
+  #glass {
+    left: 90px; top: 480px; width: 720px; height: 380px; border-radius: 44px;
+    background: linear-gradient(160deg, rgba(255,255,255,0.72), rgba(255,255,255,0.45));
+    backdrop-filter: blur(28px) saturate(1.3);
+    -webkit-backdrop-filter: blur(28px) saturate(1.3);
+    border: 1.5px solid rgba(255,255,255,0.85);
+    box-shadow: 0 40px 90px rgba(0,0,0,0.12), 0 10px 30px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+  #btn {
+    left: 590px; top: 680px; width: 136px; height: 136px; border-radius: 50%;
+    background: #111; display: grid; place-items: center;
+    box-shadow: 0 18px 40px rgba(0,0,0,0.22);
+  }
+  #ripple {
+    left: 590px; top: 680px; width: 136px; height: 136px; border-radius: 50%;
+    border: 4px solid var(--accent);
+  }
+  #pill {
+    left: 140px; top: 540px; height: 84px; padding: 0 34px 0 22px; border-radius: 42px;
+    background: #fff; box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+    display: flex; align-items: center; gap: 16px;
+    font-size: 34px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap;
+  }
+  #pill .check {
+    width: 48px; height: 48px; border-radius: 50%; background: var(--accent);
+    display: grid; place-items: center;
+  }
+
+  /* Carte A : page éditoriale */
+  .edito { padding: 34px 30px; height: 100%; background: #FBFAF7; }
+  .edito h3 { font-family: Georgia, "Times New Roman", serif; font-weight: 400; font-size: 38px; letter-spacing: -0.01em; margin-bottom: 22px; }
+  .edito .line { height: 9px; border-radius: 5px; background: #E2DFD8; margin-bottom: 11px; }
+  .edito .img {
+    margin-top: 22px; height: 210px; border-radius: 14px;
+    background:
+      radial-gradient(120% 80% at 30% 110%, #5E7A3A 0%, transparent 60%),
+      radial-gradient(90% 70% at 80% 0%, #DCE6C8 0%, transparent 70%),
+      linear-gradient(180deg, #A9BE84, #6F8B4A);
+  }
+
+  /* Carte B : tarifs */
+  .pricing { padding: 34px 22px; height: 100%; background: #fff; }
+  .pricing h3 { text-align: center; font-size: 34px; font-weight: 700; letter-spacing: -0.02em; }
+  .pricing .sub { margin: 10px auto 26px; width: 60%; height: 8px; border-radius: 4px; background: #ECECEF; }
+  .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .plan { border: 2px solid #EFEFF2; border-radius: 14px; padding: 12px 10px; height: 300px; }
+  .plan .tag { width: 44px; height: 14px; border-radius: 7px; background: #E8E8EC; margin-bottom: 14px; }
+  .plan .price { font-size: 26px; font-weight: 700; letter-spacing: -0.03em; }
+  .plan .price small { font-size: 11px; font-weight: 500; color: #8A8A90; }
+  .plan .buy { margin: 14px 0 16px; height: 24px; border-radius: 12px; background: #111; }
+  .plan .l { height: 6px; border-radius: 3px; background: #EDEDF0; margin-bottom: 9px; }
+  .plan.mid { background: #FDF3F3; border-color: #F6E1E1; }
+  .plan.hi .price { color: var(--accent); }
+
+  /* Carte C : photo */
+  .photo { height: 100%; position: relative; background: #2B1E14; }
+  .photo .room {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(60% 40% at 70% 30%, rgba(255,214,160,0.55), transparent 70%),
+      repeating-linear-gradient(90deg, rgba(0,0,0,0.0) 0 46px, rgba(0,0,0,0.18) 46px 50px),
+      linear-gradient(180deg, #6B4A2E 0%, #4A3020 55%, #2A1A10 100%);
+  }
+  .photo .floor {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 36%;
+    background: linear-gradient(180deg, #3A2516, #1E130B);
+    transform: perspective(300px) rotateX(35deg); transform-origin: 50% 100%;
+  }
+  .photo .bench {
+    position: absolute; left: 12%; right: 12%; bottom: 26%; height: 26px; border-radius: 6px;
+    background: linear-gradient(180deg, #9A6B42, #5C3B22); box-shadow: 0 16px 30px rgba(0,0,0,0.4);
+  }
+  .photo .label {
+    position: absolute; left: 22px; top: 22px; padding: 8px 16px; border-radius: 18px;
+    background: rgba(255,255,255,0.18); color: #fff; font-size: 20px; font-weight: 600;
+    backdrop-filter: blur(8px);
+  }
+
+  /* Fin : logo + bouton CTA */
+  #logo {
+    left: 440px; top: 610px; width: 200px; height: 200px; border-radius: 52px;
+    background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 80%, white), var(--accent));
+    display: grid; place-items: center;
+    box-shadow: 0 30px 70px color-mix(in srgb, var(--accent) 35%, transparent), 0 8px 20px rgba(0,0,0,0.08);
+  }
+  #cta {
+    left: 50%; top: 1130px; height: 112px; padding: 0 16px 0 48px; border-radius: 56px;
+    background: #111; color: #fff; display: flex; align-items: center; gap: 28px;
+    font-size: 40px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap;
+    box-shadow: 0 24px 50px rgba(0,0,0,0.18);
+  }
+  #cta .arrow { width: 80px; height: 80px; border-radius: 50%; background: #fff; display: grid; place-items: center; }
+
+  /* Repères zone sûre (aperçu uniquement, touche S) */
+  #safe { position: absolute; left: 0; right: 0; top: 288px; bottom: 288px; border-top: 2px dashed rgba(255,0,0,0.4); border-bottom: 2px dashed rgba(255,0,0,0.4); display: none; pointer-events: none; }
+  body.show-safe #safe { display: block; }
+  #hud { position: fixed; right: 12px; bottom: 12px; color: #aaa; font: 12px/1.4 ui-monospace, monospace; }
+  body.render #hud { display: none; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="scene">
+    <div id="demo">
+      <div id="folder" class="abs"></div>
+
+      <div id="cardA" class="abs card" style="left:40px; top:200px">
+        <div class="edito">
+          <h3>Maison Céleste</h3>
+          <div class="line" style="width:92%"></div>
+          <div class="line" style="width:84%"></div>
+          <div class="line" style="width:88%"></div>
+          <div class="line" style="width:60%"></div>
+          <div class="img"></div>
+        </div>
+      </div>
+
+      <div id="cardC" class="abs card" style="left:480px; top:190px">
+        <div class="photo">
+          <div class="room"></div>
+          <div class="floor"></div>
+          <div class="bench"></div>
+          <div class="label">Studio</div>
+        </div>
+      </div>
+
+      <div id="cardB" class="abs card" style="left:260px; top:110px">
+        <div class="pricing">
+          <h3>Nos offres</h3>
+          <div class="sub"></div>
+          <div class="plans">
+            <div class="plan"><div class="tag"></div><div class="price">29€<small>/mois</small></div><div class="buy"></div><div class="l"></div><div class="l" style="width:70%"></div><div class="l" style="width:85%"></div></div>
+            <div class="plan mid"><div class="tag"></div><div class="price">79€<small>/mois</small></div><div class="buy"></div><div class="l"></div><div class="l" style="width:70%"></div><div class="l" style="width:85%"></div></div>
+            <div class="plan hi"><div class="tag"></div><div class="price">149€<small>/mois</small></div><div class="buy"></div><div class="l"></div><div class="l" style="width:70%"></div><div class="l" style="width:85%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="glass" class="abs"></div>
+      <div id="pill" class="abs">
+        <div class="check">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+        </div>
+        Lien copié
+      </div>
+      <div id="ripple" class="abs"></div>
+      <div id="btn" class="abs">
+        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg>
+      </div>
+    </div>
+
+    <div id="logo" class="abs">
+      <svg width="104" height="104" viewBox="0 0 24 24" fill="#fff"><path d="M3 7.2C3 6 4 5 5.2 5h4.1c.6 0 1.1.2 1.5.6L12 7h6.8C20 7 21 8 21 9.2v8.6c0 1.2-1 2.2-2.2 2.2H5.2C4 20 3 19 3 17.8z"/></svg>
+    </div>
+    <div id="cta" class="abs">
+      <span id="ctaText"></span>
+      <div class="arrow">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg>
+      </div>
+    </div>
+
+    <div id="captions"></div>
+  </div>
+  <div id="safe"></div>
+</div>
+<div id="hud"></div>
+
+<script src="config.js"></script>
+<script src="timeline.js"></script>
+</body>
+</html>

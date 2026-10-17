@@ -1,0 +1,4 @@
+out/frames/
+out/still-*.png
+out/*.wav
+node_modules/
