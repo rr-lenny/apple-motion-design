@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>slow: — kinetic typography</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #111; }
+  body { display: grid; place-items: center; }
+  canvas { width: min(100vw, 177.78vh); height: auto; display: block; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1920" height="1080"></canvas>
+<script>
+// ─── Setup ──────────────────────────────────────────────────────────────────
+const W = 1920, H = 1080, FPS = 30;
+const BG = '#F4F2F3', INK = '#111111', BLUE = '#0A84FF';
+const SANS = '"Inter Display", Inter, "Helvetica Neue", Arial, sans-serif';
+const SERIF = '"Liberation Serif", "Times New Roman", "DejaVu Serif", serif';
+const EMOJI = '"Noto Color Emoji", "Apple Color Emoji", sans-serif';
+const canvas = document.getElementById('c');
+const mainCtx = canvas.getContext('2d');
+let ctx = mainCtx;
+
+// ─── Math & easing ──────────────────────────────────────────────────────────
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, t) => a + (b - a) * t;
+const p = (t, a, b) => clamp((t - a) / (b - a));
+const eOutExpo = t => t >= 1 ? 1 : 1 - Math.pow(2, -10 * t);
+const eInExpo = t => t <= 0 ? 0 : Math.pow(2, 10 * t - 10);
+const eInOut = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+const eOutBack = (t, s = 1.70158) => t <= 0 ? 0 : 1 + (s + 1) * Math.pow(t - 1, 3) + s * Math.pow(t - 1, 2);
+// damped spring, t in seconds
+const spring = (t, f = 2.6, d = 7) => t <= 0 ? 0 : 1 - Math.exp(-d * t) * Math.cos(f * 2 * Math.PI * t);
+function rng(seed) {
+  return () => {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+// ─── Drawing helpers ────────────────────────────────────────────────────────
+function font(size, o = {}) {
+  return `${o.italic ? 'italic ' : ''}${o.w ?? 800} ${size}px ${o.fam ?? SANS}`;
+}
+function measure(s, size, o = {}) {
+  ctx.save(); ctx.font = font(size, o); ctx.letterSpacing = (o.ls ?? 0) + 'px';
+  const m = ctx.measureText(s).width - (o.ls ?? 0);
+  ctx.restore(); return m;
+}
+function txt(s, x, y, size, o = {}) {
+  ctx.save();
+  ctx.translate(x, y);
+  if (o.rot) ctx.rotate(o.rot);
+  const sc = o.scale ?? 1;
+  ctx.scale(sc * (o.sx ?? 1), sc * (o.sy ?? 1));
+  if (o.skew) ctx.transform(1, 0, o.skew, 1, 0, 0);
+  ctx.font = font(size, o);
+  ctx.fillStyle = o.color ?? INK;
+  ctx.globalAlpha *= o.alpha ?? 1;
+  ctx.textAlign = o.align ?? 'center';
+  ctx.textBaseline = o.base ?? 'middle';
+  ctx.letterSpacing = (o.ls ?? 0) + 'px';
+  ctx.fillText(s, 0, 0);
+  ctx.restore();
+}
+function rr(x, y, w, h, r) {
+  ctx.beginPath(); ctx.roundRect(x, y, w, h, r);
+}
+function clear(color = BG) { ctx.fillStyle = color; ctx.fillRect(0, 0, W, H); }
+
+// Per-letter layout for a word set in one font: returns centers relative to word center.
+function layout(word, size, o = {}) {
+  const ls = o.ls ?? 0;
+  const ws = [...word].map(ch => measure(ch, size, o));
+  const total = ws.reduce((a, b) => a + b, 0) + ls * (ws.length - 1);
+  let x = -total / 2;
+  return { total, xs: ws.map(w => { const c = x + w / 2; x += w + ls; return c; }), ws };
+}
+
+// Faux‑3D keyboard key
+function keycap(x, y, s, o = {}) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(o.rot ?? 0);
+  ctx.transform(1, o.tiltY ?? 0, o.tiltX ?? 0, 1, 0, 0);
+  ctx.scale(o.scale ?? 1, o.scale ?? 1);
+  ctx.globalAlpha *= o.alpha ?? 1;
+  // shadow + body
+  ctx.shadowColor = 'rgba(0,0,0,.28)'; ctx.shadowBlur = s * .22; ctx.shadowOffsetY = s * .14;
+  let g = ctx.createLinearGradient(0, -s / 2, 0, s / 2);
+  g.addColorStop(0, '#e2e2e4'); g.addColorStop(1, '#9d9da2');
+  ctx.fillStyle = g; rr(-s / 2, -s / 2, s, s, s * .2); ctx.fill();
+  ctx.shadowColor = 'transparent';
+  // top face
+  g = ctx.createLinearGradient(-s / 2, -s / 2, s / 2, s / 2);
+  g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#e6e6e9');
+  ctx.fillStyle = g; rr(-s * .41, -s * .45, s * .82, s * .76, s * .15); ctx.fill();
+  // glyph
+  ctx.fillStyle = '#2a2a2c';
+  if (o.icon === 'pause') {
+    const bw = s * .07, bh = s * .26;
+    rr(-bw * 1.8, -s * .07 - bh / 2, bw, bh, bw * .3); ctx.fill();
+    rr(bw * .8, -s * .07 - bh / 2, bw, bh, bw * .3); ctx.fill();
+  } else if (o.label) {
+    ctx.font = font(s * .2, { w: 600 }); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(o.label, 0, -s * .07);
+  }
+  ctx.restore();
+}
+
+// macOS‑ish folder
+function folder(x, y, w, o = {}) {
+  const h = w * .76;
+  ctx.save();
+  ctx.translate(x, y); ctx.rotate(o.rot ?? 0);
+  const s = o.scale ?? 1; ctx.scale(s, s);
+  ctx.globalAlpha *= o.alpha ?? 1;
+  ctx.fillStyle = '#3E9BE0';
+  ctx.beginPath();
+  ctx.roundRect(-w / 2, -h / 2, w * .42, h * .3, w * .05);
+  ctx.fill();
+  rr(-w / 2, -h / 2 + h * .1, w, h * .9, w * .06); ctx.fill();
+  const g = ctx.createLinearGradient(0, -h / 2, 0, h / 2);
+  g.addColorStop(0, '#8DD0FB'); g.addColorStop(1, '#58B2F2');
+  ctx.fillStyle = g;
+  rr(-w / 2, -h / 2 + h * .24, w, h * .76, w * .06); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.35)';
+  ctx.fillRect(-w / 2 + w * .04, -h / 2 + h * .25, w * .92, h * .02);
+  ctx.restore();
+}
+
+// Hard pixelated text (threshold, nearest‑neighbour upscale)
+const pixCanvas = document.createElement('canvas');
+function pixelText(s, x, y, size, o = {}, px = 12) {
+  const w = Math.ceil(measure(s, size, o) + size * .4), h = Math.ceil(size * 1.5);
+  const sw = Math.max(1, Math.ceil(w / px)), sh = Math.max(1, Math.ceil(h / px));
+  pixCanvas.width = sw; pixCanvas.height = sh;
+  const c2 = pixCanvas.getContext('2d', { willReadFrequently: true });
+  c2.font = font(size / px, o); c2.fillStyle = '#000';
+  c2.textAlign = 'center'; c2.textBaseline = 'middle';
+  c2.fillText(s, sw / 2, sh / 2);
+  const img = c2.getImageData(0, 0, sw, sh);
+  for (let i = 3; i < img.data.length; i += 4) {
+    const on = img.data[i] > 90;
+    img.data[i - 3] = img.data[i - 2] = img.data[i - 1] = 17; img.data[i] = on ? 255 : 0;
+  }
+  c2.putImageData(img, 0, 0);
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  ctx.globalAlpha *= o.alpha ?? 1;
+  ctx.translate(x, y); if (o.rot) ctx.rotate(o.rot);
+  const sc = o.scale ?? 1; ctx.scale(sc, sc);
+  ctx.drawImage(pixCanvas, -sw * px / 2, -sh * px / 2, sw * px, sh * px);
+  ctx.restore();
+}
+
+// Slice glitch applied to whatever is currently on the canvas
+const glitchBuf = document.createElement('canvas'); glitchBuf.width = W; glitchBuf.height = H;
+function glitch(amount, seed) {
+  if (amount <= 0) return;
+  const g = glitchBuf.getContext('2d');
+  g.clearRect(0, 0, W, H); g.drawImage(canvas, 0, 0);
+  const r = rng(seed);
+  let y = 0;
+  while (y < H) {
+    const h = 10 + r() * 90;
+    const dx = (r() - .5) * 2 * amount * (r() < .4 ? 3 : 1);
+    ctx.drawImage(glitchBuf, 0, y, W, h, dx, y, W, h);
+    y += h;
+  }
+  // a couple of hard black slabs
+  ctx.fillStyle = INK;
+  for (let i = 0; i < 3; i++) {
+    if (r() < .5) continue;
+    const sy = r() * H, sh = 6 + r() * 30, sx = r() * W * .6;
+    ctx.fillRect(sx, sy, amount * (2 + r() * 4), sh);
+  }
+}
+
+// ─── Scenes ─────────────────────────────────────────────────────────────────
+// Each scene: d = duration, sfx = [[localTime, type]], glitchIn = slice glitch on entry.
+
+// 1 — "i [⏸] can't"
+function sIcant(t) {
+  clear();
+  const size = 300, so = { fam: SERIF, italic: true, w: 700 };
+  const wi = measure('i', size, so), key = 230, gap = 36;
+  const wc = measure("can't", size, so);
+  const eB = eOutExpo(p(t, .55, 1.0)), eC = eOutExpo(p(t, 1.2, 1.7));
+  const groupW = lerp(lerp(wi, wi + gap + key, eB), wi + gap + key + gap + wc, eC);
+  const zoom = lerp(1, 1.06, eInOut(p(t, 1.6, 2.4)));
+  ctx.save();
+  ctx.translate(W / 2, H / 2); ctx.scale(zoom, zoom); ctx.translate(-W / 2, -H / 2);
+  const x0 = W / 2 - groupW / 2, base = H / 2 + 95;
+  const si = spring(t, 2.2, 6);
+  txt('i', x0 + wi / 2, base, size, { ...so, base: 'alphabetic', scale: si });
+  if (t > .55) {
+    const k = t - .55;
+    const drop = 1 - spring(k, 1.8, 6.5);
+    keycap(x0 + wi + gap + key / 2, H / 2 + 10 - drop * 620, key, {
+      icon: 'pause', rot: drop * -.9 + Math.sin(k * 6) * .04 * (1 - eOutExpo(p(k, 0, 1.4))),
+      tiltX: .18 * Math.cos(k * 5) * (1 - p(k, 0, 1.2)), tiltY: -.06,
+    });
+  }
+  const cx = x0 + wi + gap + key + gap;
+  const lay = layout("can't", size, so);
+  [..."can't"].forEach((ch, i) => {
+    const lt = t - 1.2 - i * .055;
+    if (lt <= 0) return;
+    const e = eOutBack(p(lt, 0, .32), 2.4);
+    txt(ch, cx + lay.total / 2 + lay.xs[i], base + (1 - e) * 80, size, { ...so, base: 'alphabetic', alpha: p(lt, 0, .08), scale: lerp(.4, 1, e) });
+  });
+  ctx.restore();
+}
+
+// 2 — tiny "stop|" typing
+function sStop(t) {
+  clear();
+  const word = 'stop...';
+  const n = Math.min(word.length, Math.floor(t / .07) + 1);
+  const s = word.slice(0, n);
+  const size = 46;
+  const w = measure('stop', size, { w: 600 });
+  txt(s, W / 2 - w / 2, H / 2, size, { w: 600, align: 'left' });
+  const cw = measure(s, size, { w: 600 });
+  if (Math.floor(t * 4) % 2 === 0 || t < .5) { ctx.fillStyle = INK; ctx.fillRect(W / 2 - w / 2 + cw + 6, H / 2 - 28, 4, 56); }
+  if (t > .72) {
+    // slabs swiping out
+    const k = eInExpo(p(t, .72, 1.0));
+    ctx.fillStyle = INK;
+    ctx.save(); ctx.translate(W / 2, H / 2); ctx.transform(1, 0, -.8, 1, 0, 0);
+    ctx.fillRect(lerp(-900, -300, k), -60, lerp(0, 700, k), 46);
+    ctx.fillRect(lerp(500, -100, k), 22, lerp(0, 380, k), 18);
+    ctx.restore();
+    glitch(k * 60, 7 + Math.floor(t * 30));
+  }
+}
+
+// 3 — "everything" assembled from mixed fonts
+const FONTS = [
+  { fam: SERIF, italic: true, w: 700 }, { w: 900 }, { w: 200 }, { fam: SERIF, w: 400 }, { w: 500, italic: true },
+];
+function sEverything(t) {
+  clear();
+  const word = 'everything', size = 230, fo = { w: 800, ls: -12 };
+  const lay = layout(word, size, fo);
+  const r = rng(31);
+  const zoom = lerp(1.08, 1, eOutExpo(p(t, 0, 1.4)));
+  ctx.save(); ctx.translate(W / 2, H / 2); ctx.scale(zoom, zoom);
+  [...word].forEach((ch, i) => {
+    const sx = (r() - .5) * 900, sy = (r() - .5) * 600, srot = (r() - .5) * 1.8, ss = .5 + r() * 1.2;
+    const f = FONTS[Math.floor(r() * FONTS.length)];
+    const k = spring(t - .1 - i * .035, 1.6, 6.5);
+    const settled = k > .85 && t > .35 + i * .035;
+    const o = settled ? fo : f;
+    txt(ch, lerp(sx, lay.xs[i], k), lerp(sy, 0, k), size, { ...o, ls: 0, rot: lerp(srot, 0, k), scale: lerp(ss, 1, k), alpha: p(t, i * .02, i * .02 + .05) });
+  });
+  ctx.restore();
+  if (t < .14) glitch(80, 3 + Math.floor(t * 30));
+}
+
+// 4 — Finder desktop: folders, letter balls, selected text
+const FOLDERS = (() => {
+  const r = rng(11), out = [];
+  for (let i = 0; i < 16; i++) out.push({ x: r() * 2600 - 200, y: r() * 1100 - 20, w: 120 + r() * 160, z: .5 + r(), d: r() * .5, rot: (r() - .5) * .25 });
+  return out;
+})();
+function ballCluster(word, cx, cy, t, delay, r = 46) {
+  const n = word.length;
+  [...word].forEach((ch, i) => {
+    const row = i < Math.ceil(n / 2) ? 0 : 1;
+    const col = row === 0 ? i : i - Math.ceil(n / 2);
+    const bx = cx + (col - (row === 0 ? Math.ceil(n / 2) : Math.floor(n / 2)) / 2) * r * 1.9 + row * r * .5;
+    const by = cy + row * r * 1.75 + Math.sin(col * 1.3) * 18;
+    const k = spring(t - delay - i * .04, 2, 6);
+    if (k <= 0) return;
+    ctx.save(); ctx.translate(bx, by - (1 - k) * 400); ctx.rotate((1 - k) * 2);
+    ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+    txt(ch, 0, 3, r * .95, { w: 600, color: '#fff' });
+    ctx.restore();
+  });
+}
+function selection(word, x, y, size, t, start) {
+  const w = measure(word, size, { w: 700 }), h = size * 1.15;
+  const k = eOutExpo(p(t, start, start + .45));
+  ctx.fillStyle = 'rgba(10,132,255,.24)';
+  ctx.fillRect(x - w / 2 - 8, y - h / 2, (w + 16) * k, h);
+  txt(word, x, y + 4, size, { w: 700 });
+  if (t < start) return;
+  ctx.fillStyle = BLUE;
+  ctx.fillRect(x - w / 2 - 12, y - h / 2, 5, h);
+  ctx.beginPath(); ctx.arc(x - w / 2 - 9.5, y - h / 2 - 6, 11, 0, Math.PI * 2); ctx.fill();
+  const ex = x - w / 2 - 8 + (w + 16) * k;
+  ctx.fillRect(ex, y - h / 2, 5, h);
+  ctx.beginPath(); ctx.arc(ex + 2.5, y + h / 2 + 6, 11, 0, Math.PI * 2); ctx.fill();
+}
+function sFinder(t) {
+  clear('#FBFBFC');
+  const pan = eInOut(p(t, 0, 1.8)) * 420;
+  FOLDERS.forEach((f, i) => {
+    const s = eOutBack(p(t, f.d * .6, f.d * .6 + .35));
+    folder(f.x - pan * f.z, f.y + Math.sin(t * 2 + i) * 8, f.w * f.z, { rot: f.rot, scale: s });
+  });
+  ctx.save(); ctx.translate(-pan * .8, 0);
+  selection('slow', 760, 300, 92, t, .15);
+  ballCluster('OVERTHINK', 1240, 520, t, .3);
+  ballCluster('REPEAT', 600, 760, t, .6, 40);
+  selection('slow', 1700, 860, 64, t, .9);
+  ctx.restore();
+}
+
+// 5 — Spiral of text around a key
+const RADIAL_PHRASE = "i can't slow down. ";
+function sRadial(t) {
+  clear('#FFFFFF');
+  const zoom = lerp(1.7, 1.0, eOutExpo(p(t, 0, 1.6)));
+  ctx.save(); ctx.translate(W / 2, H / 2); ctx.scale(zoom, zoom);
+  ctx.font = font(96, { w: 800 }); ctx.fillStyle = INK; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.letterSpacing = '-4px';
+  const widths = {};
+  for (let ring = 0; ring < 12; ring++) {
+    const r = 210 + ring * 96;
+    const dir = ring % 2 ? 1 : -1;
+    let a = dir * t * (.9 - ring * .04) + ring * .7;
+    const end = a + Math.PI * 2 - .02;
+    let i = ring * 3;
+    while (a < end) {
+      const ch = RADIAL_PHRASE[i % RADIAL_PHRASE.length];
+      const w = widths[ch] ??= ch === ' ' ? 34 : ctx.measureText(ch).width - 4;
+      const step = w / r;
+      ctx.save(); ctx.rotate(a + step / 2); ctx.translate(0, -r); ctx.fillText(ch, 0, 0); ctx.restore();
+      a += step; i++;
+    }
+  }
+  ctx.restore();
+  keycap(W / 2, H / 2, 190, { icon: 'pause', rot: Math.sin(t * 2.4) * .18, tiltX: Math.sin(t * 3) * .12, scale: zoom * .9 });
+}
+
+// 6 — "slow" under a magnifying glass
+function drawSlowWord(t, size) {
+  const o = { w: 800, ls: -10 };
+  const lay = layout('slow', size, o);
+  [...'slow'].forEach((ch, i) => {
+    const k = spring(t - i * .06, 2.4, 6);
+    const x = W / 2 + lay.xs[i], y = H / 2 + (1 - k) * 160;
+    if (i === 0 && t < .45) pixelText(ch, x, y, size, { w: 800, scale: k }, 14);
+    else txt(ch, x, y, size, { ...o, ls: 0, scale: k });
+  });
+}
+function sSlow(t) {
+  clear();
+  const size = 280;
+  drawSlowWord(t, size);
+  const k = eInOut(p(t, .25, 1.25));
+  const lx = lerp(W / 2 - 520, W / 2 + 420, k), ly = H / 2 - 30 + Math.sin(k * Math.PI) * -60, R = 130;
+  if (t > .2) {
+    ctx.save();
+    ctx.beginPath(); ctx.arc(lx, ly, R, 0, Math.PI * 2); ctx.clip();
+    ctx.fillStyle = '#fff'; ctx.fillRect(lx - R, ly - R, R * 2, R * 2);
+    ctx.translate(lx, ly); ctx.scale(1.7, 1.7); ctx.translate(-lx, -ly);
+    drawSlowWord(t, size);
+    ctx.restore();
+    ctx.save();
+    ctx.strokeStyle = INK; ctx.lineWidth = 16;
+    ctx.beginPath(); ctx.arc(lx, ly, R, 0, Math.PI * 2); ctx.stroke();
+    ctx.lineCap = 'round'; ctx.lineWidth = 30;
+    ctx.beginPath(); ctx.moveTo(lx + R * .74, ly + R * .74); ctx.lineTo(lx + R * 1.55, ly + R * 1.55); ctx.stroke();
+    ctx.restore();
+  }
+}
+
+// 7 — "Every{⏳}" → "Everyday"
+function sEvery(t) {
+  clear();
+  const size = 210, o = { w: 800, ls: -9 };
+  const we = measure('Every', size, o);
+  const brW = 330, wd = measure('day', size, o);
+  const eIn = eOutExpo(p(t, .3, .6)), eOut = eOutExpo(p(t, .95, 1.25));
+  const tailW = lerp(lerp(0, brW, eIn), wd, eOut);
+  const x0 = W / 2 - (we + tailW) / 2;
+  txt('Every', x0, H / 2, size, { ...o, align: 'left', scale: 1 });
+  const bx = x0 + we + 10;
+  if (t > .3 && t < 1.25) {
+    const s = eOutBack(p(t, .3, .55)) * (1 - eOut);
+    const flip = eInOut(p(t, .55, .85)) * Math.PI;
+    ctx.save(); ctx.translate(bx + brW / 2, H / 2); ctx.scale(s, s);
+    txt('{', -brW / 2 + 40, -10, size, { w: 500 });
+    txt('}', brW / 2 - 40, -10, size, { w: 500 });
+    txt('⏳', 0, 6, 150, { fam: EMOJI, w: 400, rot: flip });
+    ctx.restore();
+  }
+  if (t > 1.0) {
+    const lay = layout('day', size, o);
+    [...'day'].forEach((ch, i) => {
+      const k = spring(t - 1.0 - i * .05, 2.4, 6.5);
+      txt(ch, bx - 10 + lay.total / 2 + lay.xs[i], H / 2 + (1 - k) * 90, size, { ...o, ls: 0, scale: lerp(.3, 1, clamp(k)) });
+    });
+  }
+}
+
+// 8 — BUT / 👉 / ?
+function sBut(t) {
+  clear();
+  const k = eOutExpo(p(t, 0, .18));
+  const shake = t < .25 ? Math.sin(t * 120) * 10 * (1 - p(t, 0, .25)) : 0;
+  txt('BUT', W / 2 + shake, H / 2, 420, { w: 900, skew: -.22, ls: -22, scale: lerp(2.4, 1, k) });
+}
+function sPoint(t) {
+  clear();
+  const k = spring(t, 2.8, 6);
+  txt('👉', W / 2, H / 2, 230, { fam: EMOJI, w: 400, scale: k, rot: Math.sin(t * 18) * .08 * (1 - t * 2) });
+}
+function sQuestion(t) {
+  clear('#000');
+  txt('?', W / 2, H / 2, 120, { w: 800, color: '#fff', scale: 1 + Math.sin(t * 30) * .04 + eOutBack(p(t, 0, .2)) * .2 });
+}
+
+// 9 — giant tumbling BREATHE
+const BR = (() => {
+  const r = rng(77), out = [], word = 'BREATHE';
+  for (let row = 0; row < 6; row++) for (let c = 0; c < 8; c++)
+    out.push({ ch: word[(c + row * 3) % word.length], row, c, rot: (r() - .5) * .9, dx: (r() - .5) * 70, dy: (r() - .5) * 60, d: (row * 8 + c) * .022 + r() * .06 });
+  return out;
+})();
+function sBreathe(t) {
+  clear();
+  const cam = t * 380 - 120;
+  BR.forEach(b => {
+    const x = b.c * 300 + (b.row % 2) * 150 - 120 + b.dx;
+    const y = b.row * 340 + b.dy - cam;
+    if (y < -300 || y > H + 300) return;
+    const k = eOutBack(p(t, b.d, b.d + .3), 2.2);
+    if (k <= 0) return;
+    txt(b.ch, x, y, 430, { w: 900, rot: b.rot + (1 - k) * .8, scale: k });
+  });
+}
+
+// 10 — collage of word boxes collapsing to centre
+const BOXES = (() => {
+  const r = rng(5), words = ['now', 'here', 'this', 'stay', 'calm', 'still', 'now', 'here', 'yes', 'this'];
+  return words.map((w, i) => ({ w, x: (r() - .5) * 1100, y: (r() - .5) * 560, bw: 260 + r() * 200, bh: 210 + r() * 90, inv: i % 3 !== 1, d: i * .05 }));
+})();
+function sBoxes(t) {
+  clear();
+  const k = eInOut(p(t, .75, 1.2));
+  ctx.save(); ctx.translate(W / 2, H / 2); ctx.scale(lerp(1, .28, k), lerp(1, .28, k));
+  BOXES.forEach(b => {
+    const e = eOutExpo(p(t, b.d, b.d + .18));
+    if (e <= 0) return;
+    ctx.save(); ctx.translate(b.x, b.y); ctx.scale(lerp(1.35, 1, e), lerp(1.35, 1, e));
+    ctx.fillStyle = b.inv ? INK : '#fff';
+    ctx.fillRect(-b.bw / 2, -b.bh / 2, b.bw, b.bh);
+    if (!b.inv) { ctx.strokeStyle = INK; ctx.lineWidth = 10; ctx.strokeRect(-b.bw / 2, -b.bh / 2, b.bw, b.bh); }
+    txt(b.w, 0, 0, 120, { w: 800, ls: -6, color: b.inv ? '#fff' : INK });
+    ctx.restore();
+  });
+  ctx.restore();
+}
+
+// 11 — "just breathe" + name tags
+const TAGS = [
+  ['you', -260, -110], ['me', 40, -150], ['us', 260, -60], ['later', -120, -20],
+  ['tomorrow', 170, 70], ['not now', -280, 90], ['maybe', 40, 150],
+];
+function tag(label, x, y, s) {
+  const size = 44, w = measure(label, size, { w: 600 }) + 56, h = 76;
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
+  ctx.shadowColor = 'rgba(0,0,0,.25)'; ctx.shadowBlur = 20; ctx.shadowOffsetY = 8;
+  ctx.fillStyle = '#2B2B2D'; rr(-w / 2, -h / 2, w, h, 10); ctx.fill();
+  ctx.shadowColor = 'transparent';
+  ctx.beginPath(); ctx.moveTo(-12, -h / 2); ctx.lineTo(0, -h / 2 - 14); ctx.lineTo(12, -h / 2); ctx.fill();
+  txt(label, 0, 2, size, { w: 600, color: '#fff' });
+  ctx.restore();
+}
+function sJust(t) {
+  clear();
+  const zoom = lerp(1, 1.4, eInOut(p(t, 1.1, 1.8)));
+  ctx.save(); ctx.translate(W / 2, H / 2); ctx.scale(zoom, zoom); ctx.translate(-W / 2, -H / 2);
+  const size = 170, bo = { w: 800, ls: -8 };
+  const wj = measure('just', size, { fam: SERIF, italic: true, w: 700 });
+  const wb = measure('breathe', size, bo);
+  const total = wj + 50 + wb;
+  const shift = eOutExpo(p(t, .2, .55));
+  const x0 = W / 2 - lerp(wj, total, shift) / 2;
+  txt('just', x0, H / 2 + 60, size, { fam: SERIF, italic: true, w: 700, align: 'left', base: 'alphabetic', scale: 1 });
+  const lay = layout('breathe', size, bo), bx = x0 + wj + 50 + wb / 2;
+  [...'breathe'].forEach((ch, i) => {
+    const k = spring(t - .22 - i * .035, 2.4, 6.5);
+    if (k <= 0) return;
+    txt(ch, bx + lay.xs[i], H / 2 + 60 + (1 - k) * 60, size, { ...bo, ls: 0, base: 'alphabetic', alpha: clamp(k * 3) });
+  });
+  TAGS.forEach(([l, dx, dy], i) => {
+    const e = eOutBack(p(t, .6 + i * .07, .6 + i * .07 + .25), 2);
+    if (e > 0) tag(l, bx + dx, H / 2 + dy, e);
+  });
+  ctx.restore();
+}
+
+// 12 — title card "slow:"
+function sTitle(t) {
+  clear();
+  const size = 250, o = { w: 900, ls: -14 };
+  const lay = layout('slow:', size, o);
+  const k = eOutExpo(p(t, 0, .5));
+  [...'slow:'].forEach((ch, i) => {
+    const lock = .35 + i * .12;
+    const x = W / 2 + lay.xs[i], y = H / 2 - 30;
+    if (t < lock && ch !== ':') {
+      const f = Math.floor(t * 18 + i * 2) % 3;
+      if (f === 0) txt(ch, x, y, size, { fam: SERIF, italic: true, w: 700 });
+      else if (f === 1) pixelText(ch, x, y, size, { w: 900 }, 16);
+      else txt(ch, x, y, size, { w: 200 });
+    } else {
+      const e = eOutBack(p(t, lock, lock + .2), 2.5);
+      txt(ch, x, y, size, { ...o, ls: 0, scale: lerp(1.25, 1, e) });
+    }
+  });
+  const s = eOutExpo(p(t, .8, 1.2));
+  txt('kinetic typography study', W / 2 + lay.total / 2 - 10, H / 2 + 90 + (1 - s) * 20, 34, { w: 600, align: 'right', alpha: s, ls: -1 });
+  if (t > 1.85) { ctx.fillStyle = `rgba(244,242,243,${p(t, 1.85, 2.0)})`; ctx.fillRect(0, 0, W, H); }
+}
+
+// 13 — credit
+function sCredit(t) {
+  clear();
+  const k = spring(t, 1.6, 6);
+  keycap(W / 2, H / 2 - 40, 150, { icon: 'pause', scale: k, rot: (1 - k) * -1.2, tiltX: Math.sin(t * 2.5) * .08 });
+  const s = eOutExpo(p(t, .3, .7));
+  txt('made with code · canvas + ffmpeg', W / 2, H / 2 + 95, 32, { w: 600, alpha: s, ls: -.5 });
+  if (t > 1.2) { ctx.fillStyle = `rgba(244,242,243,${eInOut(p(t, 1.2, 1.6))})`; ctx.fillRect(0, 0, W, H); }
+}
+
+// ─── Timeline ───────────────────────────────────────────────────────────────
+const SCENES = [
+  { d: 2.4, f: sIcant, sfx: [[0, 'pop'], [.6, 'whoosh'], [.95, 'thud'], [1.2, 'tick'], [1.26, 'tick'], [1.31, 'tick'], [1.37, 'tick'], [1.42, 'tick']] },
+  { d: 1.0, f: sStop, sfx: [[0, 'tick'], [.07, 'tick'], [.14, 'tick'], [.21, 'tick'], [.28, 'tick'], [.35, 'tick'], [.42, 'tick'], [.72, 'glitch']] },
+  { d: 1.4, f: sEverything, sfx: [[0, 'thud'], [.1, 'whoosh'], [.4, 'pop']] },
+  { d: 1.8, f: sFinder, sfx: [[0, 'thud'], [.15, 'select'], [.3, 'bubble'], [.6, 'bubble'], [.9, 'select']] },
+  { d: 2.0, f: sRadial, sfx: [[0, 'thud'], [0, 'whoosh'], [1.0, 'tick'], [1.5, 'tick']] },
+  { d: 1.4, f: sSlow, sfx: [[0, 'pop'], [.06, 'pop'], [.12, 'pop'], [.18, 'pop'], [.3, 'whoosh']] },
+  { d: 1.4, f: sEvery, sfx: [[0, 'thud'], [.3, 'pop'], [.55, 'whoosh'], [1.0, 'pop']] },
+  { d: 0.6, f: sBut, sfx: [[0, 'slam']] },
+  { d: 0.5, f: sPoint, sfx: [[0, 'pop']] },
+  { d: 0.5, f: sQuestion, sfx: [[0, 'thud']] },
+  { d: 1.6, f: sBreathe, sfx: [[0, 'slam'], [.1, 'whoosh'], [.5, 'thud'], [1.0, 'thud']] },
+  { d: 1.2, f: sBoxes, sfx: [[0, 'tick'], [.1, 'tick'], [.2, 'tick'], [.3, 'tick'], [.4, 'tick'], [.75, 'whoosh']] },
+  { d: 1.8, f: sJust, sfx: [[0, 'pop'], [.22, 'whoosh'], [.6, 'bubble'], [.74, 'bubble'], [.88, 'bubble'], [1.02, 'bubble']] },
+  { d: 2.0, f: sTitle, sfx: [[0, 'thud'], [.35, 'tick'], [.47, 'tick'], [.59, 'tick'], [.71, 'tick'], [.83, 'slam']] },
+  { d: 1.6, f: sCredit, sfx: [[0, 'pop']] },
+];
+let acc = 0;
+SCENES.forEach(s => { s.start = acc; acc += s.d; });
+const DURATION = acc;
+window.DURATION = DURATION; window.FPS = FPS;
+window.SFX = SCENES.flatMap(s => s.sfx.map(([lt, type]) => ({ t: +(s.start + lt).toFixed(3), type })));
+
+function render(t) {
+  ctx = mainCtx;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  const s = SCENES.find(s => t < s.start + s.d) ?? SCENES[SCENES.length - 1];
+  s.f(Math.max(0, t - s.start), s.d);
+}
+window.render = render;
+
+// Wait for fonts so measurements are stable, then preview in real time unless driven by the renderer.
+window.ready = Promise.all([
+  document.fonts.load(font(100, { w: 800 })), document.fonts.load(font(100, { w: 900 })),
+  document.fonts.load(font(100, { w: 200 })), document.fonts.load(font(100, { w: 600 })),
+  document.fonts.load(font(100, { fam: SERIF, italic: true, w: 700 })), document.fonts.load(font(100, { fam: EMOJI, w: 400 })),
+]).then(() => true);
+if (!location.search.includes('render')) {
+  window.ready.then(() => {
+    const t0 = performance.now();
+    const loop = () => { render(((performance.now() - t0) / 1000) % DURATION); requestAnimationFrame(loop); };
+    loop();
+  });
+}
+</script>
+</body>
+</html>
