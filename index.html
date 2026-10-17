@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Keynote Text Motion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1D1D1F;
+    --muted: #86868B;
+    --sel: #D6E4FA;
+    --handle: #3478F6;
+    --menu: #1C1C1E;
+    --font: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Inter", "Helvetica Neue", Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: #FFFFFF;
+    color: var(--ink);
+    font-family: var(--font);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow: hidden;
+  }
+
+  /* ---------- Stage ---------- */
+  .stage {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 16px;
+  }
+
+  .scene {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(24px, 5vh, 48px);
+    will-change: transform, opacity, filter;
+  }
+
+  .line {
+    margin: 0;
+    font-size: clamp(30px, 6.2vw, 56px);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    text-align: center;
+    max-width: 16em;
+  }
+
+  .word {
+    display: inline-block;
+    opacity: 0;
+    will-change: transform, opacity, filter;
+  }
+
+  /* ---------- Demo 1 : sélection + menu contextuel ---------- */
+  .sel {
+    position: relative;
+    display: inline-block;
+    isolation: isolate;
+  }
+
+  .sel .hl {
+    position: absolute;
+    inset: 0.02em -0.04em -0.02em -0.04em;
+    background: var(--sel);
+    border-radius: 2px;
+    transform: scaleX(0);
+    transform-origin: left center;
+    z-index: -1;
+  }
+
+  .sel .handle {
+    position: absolute;
+    top: 0.02em;
+    bottom: -0.02em;
+    width: 2px;
+    background: var(--handle);
+    border-radius: 1px;
+    opacity: 0;
+  }
+  .sel .handle::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    width: 0.24em;
+    height: 0.24em;
+    margin-left: -0.12em;
+    border-radius: 50%;
+    background: var(--handle);
+  }
+  .sel .handle.l { left: -0.04em; transform-origin: center bottom; }
+  .sel .handle.l::after { top: -0.2em; }
+  .sel .handle.r { right: -0.04em; transform-origin: center top; }
+  .sel .handle.r::after { bottom: -0.2em; }
+
+  .menu-pos {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 0.42em);
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+
+  .menu {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    background: var(--menu);
+    border-radius: 12px;
+    color: #FFFFFF;
+    font-size: max(14px, 0.36em);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    opacity: 0;
+    transform-origin: center bottom;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  }
+  .menu::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -0.5em;
+    margin-left: -0.6em;
+    border-left: 0.6em solid transparent;
+    border-right: 0.6em solid transparent;
+    border-top: 0.6em solid var(--menu);
+  }
+  /* Pas de place au-dessus (phrase sur deux lignes) : le menu passe dessous, comme sur iOS. */
+  .sel.below .menu-pos { bottom: auto; top: calc(100% + 0.5em); }
+  .sel.below .menu { transform-origin: center top; }
+  .sel.below .menu::after {
+    bottom: auto;
+    top: -0.5em;
+    border-top: 0;
+    border-bottom: 0.6em solid var(--menu);
+  }
+  .menu span { padding: 0.62em 1.25em; }
+  .menu i {
+    width: 1px;
+    background: rgba(255, 255, 255, 0.28);
+  }
+
+  /* ---------- Demo 2 : dossier qui s'ouvre ---------- */
+  .folder {
+    position: relative;
+    font-size: clamp(6px, 2.4vw, 10px); /* tout le dossier est en em */
+    width: 36em;
+    height: 27em;
+  }
+  .folder > * { position: absolute; }
+
+  .f-back {
+    left: 50%;
+    top: 3.5em;
+    width: 22em;
+    height: 14em;
+    margin-left: -11em;
+    background: linear-gradient(180deg, #E4E4E7, #D9D9DD);
+    border-radius: 1.6em;
+    opacity: 0;
+  }
+  .f-back::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: -1.4em;
+    width: 9em;
+    height: 3em;
+    background: #E4E4E7;
+    border-radius: 1.2em 1.2em 0 0;
+  }
+
+  .card {
+    left: 50%;
+    top: 4em;
+    width: 14em;
+    height: 17em;
+    margin-left: -7em;
+    background: #FFFFFF;
+    border-radius: 1.2em;
+    box-shadow: 0 0.2em 0.6em rgba(0, 0, 0, 0.06), 0 1.4em 3em rgba(0, 0, 0, 0.12);
+    overflow: hidden;
+    opacity: 0;
+    transform-origin: center bottom;
+  }
+  .card.pricing { width: 16em; height: 18em; margin-left: -8em; top: 3em; padding: 1.2em 1em; }
+
+  /* Pricing mock */
+  .pr-title { font-size: 1.15em; font-weight: 600; text-align: center; letter-spacing: -0.02em; }
+  .pr-sub { height: 0.35em; width: 50%; margin: 0.6em auto 1.1em; background: #E8E8ED; border-radius: 1em; }
+  .pr-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.45em; }
+  .pr-col { border: 1px solid #EDEDF0; border-radius: 0.5em; padding: 0.45em; }
+  .pr-col .tag { height: 2.2em; border-radius: 0.35em; background: #F2F2F5; margin-bottom: 0.5em; }
+  .pr-col:nth-child(1) .tag { background: #E4E4E8; }
+  .pr-col:nth-child(2) .tag { background: #F8E5E7; }
+  .pr-col:nth-child(3) .tag { background: #EEF0F3; }
+  .pr-col b { display: block; font-size: 0.95em; font-weight: 700; letter-spacing: -0.02em; }
+  .pr-col b small { font-size: 0.5em; font-weight: 500; color: var(--muted); }
+  .pr-col .btn { height: 0.9em; background: var(--ink); border-radius: 1em; margin: 0.55em 0 0.6em; }
+  .pr-col .ln { height: 0.28em; background: #ECECF0; border-radius: 1em; margin-top: 0.38em; }
+  .pr-col .ln:nth-of-type(odd) { width: 80%; }
+
+  /* Editorial mock */
+  .card.editorial { padding: 1.3em 1.1em; }
+  .ed-title { font-family: Georgia, "Times New Roman", serif; font-size: 1.3em; letter-spacing: -0.01em; margin-bottom: 0.7em; }
+  .ed-ln { height: 0.3em; background: #E9E9EE; border-radius: 1em; margin-bottom: 0.42em; }
+  .ed-ln.s { width: 70%; }
+  .ed-img {
+    height: 7em;
+    margin-top: 0.9em;
+    border-radius: 0.5em;
+    background:
+      radial-gradient(ellipse at 30% 30%, rgba(255, 245, 210, 0.7), transparent 55%),
+      linear-gradient(160deg, #7C8F5A, #47593A 60%, #2F3D27);
+  }
+
+  /* Interior photo mock */
+  .card.photo {
+    background:
+      radial-gradient(ellipse 60% 35% at 55% 28%, rgba(255, 220, 160, 0.85), transparent 70%),
+      repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.14) 0 2px, transparent 2px 2.2em),
+      linear-gradient(180deg, #4A3323 0%, #7A5536 45%, #5B3E28 70%, #2B1D13 100%);
+    border: 0.45em solid #FFFFFF;
+  }
+  .card.photo::after {
+    content: "";
+    position: absolute;
+    left: 12%;
+    right: 12%;
+    bottom: 18%;
+    height: 22%;
+    border-radius: 0.4em;
+    background: linear-gradient(180deg, #2E2016, #1C130C);
+    box-shadow: 0 -0.4em 1em rgba(255, 200, 140, 0.25);
+  }
+
+  .f-glass {
+    left: 50%;
+    top: 13.5em;
+    width: 22em;
+    height: 11em;
+    margin-left: -11em;
+    border-radius: 1.6em;
+    background: rgba(240, 240, 243, 0.55);
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+    backdrop-filter: blur(18px) saturate(1.4);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    box-shadow: 0 1.6em 3.2em rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    opacity: 0;
+  }
+  .f-btn {
+    position: absolute;
+    right: 1.3em;
+    bottom: 1.3em;
+    width: 4.6em;
+    height: 4.6em;
+    border-radius: 50%;
+    background: var(--ink);
+    display: grid;
+    place-items: center;
+    opacity: 0;
+  }
+  .f-btn svg { width: 2em; height: 2em; }
+
+  /* ---------- Rejouer ---------- */
+  .replay {
+    position: fixed;
+    left: 50%;
+    bottom: max(24px, env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: 1px solid #E5E5EA;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.8);
+    color: var(--muted);
+    font: 500 13px/1 var(--font);
+    letter-spacing: -0.01em;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .replay:hover { color: var(--ink); border-color: #D2D2D7; }
+  .replay:focus-visible { outline: 2px solid var(--handle); outline-offset: 2px; }
+  .replay svg { width: 13px; height: 13px; }
+</style>
+</head>
+<body>
+  <main class="stage" id="stage" aria-live="polite"></main>
+
+  <button class="replay" id="replay" type="button">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M2.5 8a5.5 5.5 0 1 0 1.7-4"/><path d="M2.5 2.5V5H5"/>
+    </svg>
+    Rejouer
+  </button>
+
+<script>
+(() => {
+  const SCRIPT = [
+    { text: "Imaginez un outil." },
+    { text: "Qui comprend vos idées." },
+    { text: "Sélectionnez un mot : Design.", demo: "menu", target: "Design" },
+    { text: "Et tout prend forme.", demo: "folder" },
+    { text: "Simplement." }
+  ];
+
+  const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
+  const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const BLUR_IN = REDUCED ? 0 : 12;
+  const BLUR_OUT = REDUCED ? 0 : 10;
+  const WORD_DUR = 750;
+  const STAGGER = 80;
+  const HOLD = 2000;
+
+  const stage = document.getElementById("stage");
+  let runId = 0;
+
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+
+  // Entrée « flou → net » partagée par les mots et les éléments de démo.
+  function blurIn(el, { delay = 0, duration = WORD_DUR, y = 20, blur = BLUR_IN, from = "", to = "" } = {}) {
+    return el.animate([
+      { opacity: 0, filter: `blur(${blur}px)`, transform: `${from} translateY(${y}px)`.trim() },
+      { opacity: 1, filter: "blur(0px)", transform: to || "none" }
+    ], { duration, delay, easing: EASE, fill: "both" });
+  }
+
+  function buildLine(scene) {
+    const p = document.createElement("p");
+    p.className = "line";
+    const words = scene.text.split(" ");
+    words.forEach((w, i) => {
+      const span = document.createElement("span");
+      span.className = "word";
+      const bare = w.replace(/[.,!?;: ]+$/, "");
+      if (scene.target && bare === scene.target) {
+        span.innerHTML =
+          `<span class="sel"><span class="hl"></span><span class="handle l"></span>` +
+          `${bare}<span class="handle r"></span>` +
+          `<span class="menu-pos"><span class="menu"><span>Think</span><i></i><span>Generate</span></span></span>` +
+          `</span>${w.slice(bare.length)}`;
+      } else {
+        span.textContent = w;
+      }
+      p.appendChild(span);
+      if (i < words.length - 1) p.appendChild(document.createTextNode(" "));
+    });
+    return p;
+  }
+
+  function buildFolder() {
+    const f = document.createElement("div");
+    f.className = "folder";
+    f.setAttribute("aria-hidden", "true");
+    const col = (price, lines = 4) =>
+      `<div class="pr-col"><div class="tag"></div><b>${price}<small>/mois</small></b><div class="btn"></div>` +
+      `${'<div class="ln"></div>'.repeat(lines)}</div>`;
+    f.innerHTML = `
+      <div class="f-back"></div>
+      <div class="card editorial">
+        <div class="ed-title">Maison Calme</div>
+        <div class="ed-ln"></div><div class="ed-ln"></div><div class="ed-ln s"></div>
+        <div class="ed-ln"></div><div class="ed-ln s"></div>
+        <div class="ed-img"></div>
+      </div>
+      <div class="card photo"></div>
+      <div class="card pricing">
+        <div class="pr-title">Pricing plans</div>
+        <div class="pr-sub"></div>
+        <div class="pr-cols">${col("$12")}${col("$29", 5)}${col("$49", 6)}</div>
+      </div>
+      <div class="f-glass">
+        <div class="f-btn">
+          <svg viewBox="0 0 20 20" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 14 14 6"/><path d="M7.5 6H14v6.5"/></svg>
+        </div>
+      </div>`;
+    return f;
+  }
+
+  async function playMenu(line) {
+    const sel = line.querySelector(".sel");
+    const hl = sel.querySelector(".hl");
+    const hL = sel.querySelector(".handle.l");
+    const hR = sel.querySelector(".handle.r");
+    const menu = sel.querySelector(".menu");
+    const w = sel.offsetWidth;
+    const below = sel.getBoundingClientRect().top - line.getBoundingClientRect().top > sel.offsetHeight / 2;
+    sel.classList.toggle("below", below);
+
+    // Les poignées apparaissent au début du mot…
+    const pop = [
+      { opacity: 0, transform: "scaleY(0.3)" },
+      { opacity: 1, transform: "scaleY(1)" }
+    ];
+    hL.animate(pop, { duration: 280, easing: EASE, fill: "both" });
+    hR.animate([
+      { opacity: 0, transform: `translateX(${-w}px) scaleY(0.3)` },
+      { opacity: 1, transform: `translateX(${-w}px) scaleY(1)` }
+    ], { duration: 280, easing: EASE, fill: "both" });
+    await wait(220);
+
+    // …puis la sélection s'étend jusqu'à la fin du mot.
+    hl.animate([{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }],
+      { duration: 620, easing: EASE, fill: "both" });
+    await hR.animate([
+      { opacity: 1, transform: `translateX(${-w}px)` },
+      { opacity: 1, transform: "translateX(0)" }
+    ], { duration: 620, easing: EASE, fill: "both" }).finished;
+
+    await wait(180);
+    await blurIn(menu, { duration: 650, y: below ? -10 : 10, blur: REDUCED ? 0 : 8, from: "scale(0.94)" }).finished;
+    return HOLD + 300;
+  }
+
+  async function playFolder(folder) {
+    const $ = s => folder.querySelector(s);
+    blurIn($(".f-back"), { duration: 750 });
+    blurIn($(".f-glass"), { delay: 120, duration: 750, y: 28 });
+
+    const fan = [
+      [".editorial", -7.2, -1.2, -8],
+      [".pricing", 0, -3.2, 0],
+      [".photo", 7.2, -1.2, 8]
+    ];
+    const anims = fan.map(([sel, x, y, r], i) =>
+      $(sel).animate([
+        { opacity: 0, filter: `blur(${BLUR_IN}px)`, transform: "translate(0, 6em) rotate(0deg) scale(0.86)" },
+        { opacity: 1, filter: "blur(0px)", transform: `translate(${x}em, ${y}em) rotate(${r}deg) scale(1)` }
+      ], { duration: 950, delay: 420 + i * 90, easing: EASE, fill: "both" })
+    );
+
+    const btn = blurIn($(".f-btn"), { delay: 900, duration: 650, y: 0, blur: REDUCED ? 0 : 8, from: "scale(0.6)" });
+    await Promise.all([...anims.map(a => a.finished), btn.finished]);
+    return HOLD + 400;
+  }
+
+  async function showScene(scene, id) {
+    stage.replaceChildren();
+    const wrap = document.createElement("div");
+    wrap.className = "scene";
+
+    let folder = null;
+    if (scene.demo === "folder") wrap.appendChild(folder = buildFolder());
+    const line = buildLine(scene);
+    wrap.appendChild(line);
+    stage.appendChild(wrap);
+
+    const words = [...line.querySelectorAll(".word")];
+    const textDelay = folder ? 350 : 0;
+    const entries = words.map((w, i) => blurIn(w, { delay: textDelay + i * STAGGER }));
+
+    let hold = HOLD;
+    if (folder) {
+      hold = await playFolder(folder);
+      await Promise.all(entries.map(a => a.finished));
+    } else {
+      await Promise.all(entries.map(a => a.finished));
+      if (id !== runId) return;
+      if (scene.demo === "menu") {
+        await wait(300);
+        if (id !== runId) return;
+        hold = await playMenu(line);
+      }
+    }
+
+    if (id !== runId) return;
+    await wait(hold);
+    if (id !== runId) return;
+
+    await wrap.animate([
+      { opacity: 1, filter: "blur(0px)", transform: "none" },
+      { opacity: 0, filter: `blur(${BLUR_OUT}px)`, transform: "translateY(-18px)" }
+    ], { duration: 700, easing: EASE, fill: "forwards" }).finished;
+    await wait(250);
+  }
+
+  async function play(id) {
+    while (id === runId) {
+      for (const scene of SCRIPT) {
+        if (id !== runId) return;
+        await showScene(scene, id).catch(() => {}); // animations annulées au rejouer
+      }
+      await wait(600);
+    }
+  }
+
+  function restart() {
+    runId++;
+    stage.getAnimations({ subtree: true }).forEach(a => a.cancel());
+    stage.replaceChildren();
+    play(runId);
+  }
+
+  document.getElementById("replay").addEventListener("click", restart);
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(restart);
+})();
+</script>
+</body>
+</html>
