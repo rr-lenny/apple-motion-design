@@ -1,0 +1,569 @@
+<!doctype html>
+<!--
+  KEYNOTE SHORT — animation verticale 1080×1920 (9:16), 20 s, sans boucle ni bouton.
+
+  Lancement : automatique après 0,5 s d'écran blanc, ou au clic sur l'écran.
+  Un clic une fois l'animation terminée la relance (pratique pour refaire une prise).
+
+  COMMENT L'ENREGISTRER
+
+  1) Enregistrement d'écran (rapide)
+     - Ouvrir short.html dans Chrome, passer en plein écran (F11 / ⌃⌘F).
+     - Le canvas 1080×1920 est mis à l'échelle pour tenir dans la fenêtre ; les
+       bandes autour sont blanches, on recadre en 9:16 au montage.
+     - Pour un rendu pixel exact : ajouter ?scale=1 à l'URL et utiliser une
+       fenêtre de 1080×1920 (DevTools → mode appareil → 1080×1920, DPR 1).
+     - Lancer l'enregistreur (QuickTime, OBS…), puis cliquer sur l'écran.
+
+  2) Export image par image (parfait, 60 fps garantis)
+     - Ouvrir short.html?export : l'animation ne démarre pas toute seule et
+       window.seek(ms) affiche l'image exacte à l'instant ms (0 → 20000).
+     - Exemple avec Playwright (Node) :
+         const { chromium } = require("playwright");
+         const browser = await chromium.launch();
+         const page = await browser.newPage({ viewport: { width: 1080, height: 1920 } });
+         await page.goto("file:///chemin/vers/short.html?export&scale=1");
+         await page.evaluate(() => window.ready);
+         for (let f = 0; f < 1200; f++) {               // 20 s × 60 fps
+           await page.evaluate(t => window.seek(t), f * 1000 / 60);
+           await page.screenshot({ path: `frames/f${String(f).padStart(4, "0")}.png` });
+         }
+     - Puis : ffmpeg -framerate 60 -i frames/f%04d.png -c:v libx264 -pix_fmt yuv420p -crf 16 short.mp4
+
+  Zones de sécurité respectées : rien d'important dans les 250 px du haut,
+  les 400 px du bas et les 120 px de droite.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Keynote Short</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1D1D1F;
+    --muted: #86868B;
+    --sel: #D6E4FA;
+    --handle: #3478F6;
+    --menu: #1C1C1E;
+    --font: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Inter", "Helvetica Neue", Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: #FFFFFF;
+    overflow: hidden;
+    cursor: default;
+  }
+
+  /* ---------- Canvas 1080×1920 ---------- */
+  .canvas {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 1080px;
+    height: 1920px;
+    margin: -960px 0 0 -540px;
+    background: #FFFFFF;
+    color: var(--ink);
+    font-family: var(--font);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow: hidden;
+    transform-origin: center center;
+  }
+
+  /* Une scène = la zone sûre (x 120→960, y 250→1520), contenu centré
+     verticalement à y≈885, donc légèrement au-dessus du centre. */
+  .scene {
+    position: absolute;
+    left: 120px;
+    right: 120px;
+    top: 250px;
+    height: 1270px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 64px;
+    will-change: transform, opacity, filter;
+  }
+
+  .line {
+    margin: 0;
+    font-size: 92px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    text-align: center;
+    max-width: 840px;
+  }
+  .line.big { font-size: 168px; }
+
+  .word, .anim {
+    display: inline-block;
+    will-change: transform, opacity, filter;
+  }
+
+  /* ---------- Démo 1 : sélection + menu ---------- */
+  .sel {
+    position: relative;
+    display: inline-block;
+    isolation: isolate;
+  }
+  .sel .hl {
+    position: absolute;
+    inset: 0.04em -0.03em -0.02em -0.03em;
+    background: var(--sel);
+    border-radius: 6px;
+    transform-origin: left center;
+    z-index: -1;
+  }
+  .sel .handle {
+    position: absolute;
+    top: 0.04em;
+    bottom: -0.02em;
+    width: 5px;
+    margin-left: -2.5px;
+    background: var(--handle);
+    border-radius: 3px;
+  }
+  .sel .handle::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    width: 26px;
+    height: 26px;
+    margin-left: -13px;
+    border-radius: 50%;
+    background: var(--handle);
+  }
+  .sel .handle.l { left: -0.03em; transform-origin: center bottom; }
+  .sel .handle.l::after { top: -22px; }
+  .sel .handle.r { right: -0.03em; margin: 0 -2.5px 0 0; transform-origin: center top; }
+  .sel .handle.r::after { bottom: -22px; }
+
+  .menu-pos {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 64px);
+    transform: translateX(-50%);
+  }
+  .menu-in { display: block; transform-origin: center bottom; }
+  .menu {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    background: var(--menu);
+    border-radius: 24px;
+    color: #FFFFFF;
+    font-size: 60px;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    line-height: 1;
+    white-space: nowrap;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.16);
+    transform-origin: center bottom;
+  }
+  .menu::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -22px;
+    margin-left: -26px;
+    border-left: 26px solid transparent;
+    border-right: 26px solid transparent;
+    border-top: 24px solid var(--menu);
+  }
+  .menu .item { position: relative; padding: 48px 86px; overflow: hidden; }
+  .menu .item:first-child { border-radius: 24px 0 0 24px; }
+  .menu .item:last-child { border-radius: 0 24px 24px 0; }
+  .menu i { width: 2px; background: rgba(255, 255, 255, 0.28); }
+  .menu .press {
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.16);
+    opacity: 0;
+  }
+  .menu .ripple {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 220px;
+    height: 220px;
+    margin: -110px 0 0 -110px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.22);
+    opacity: 0;
+  }
+  .menu .label { position: relative; }
+
+  /* ---------- Démo 2 : dossier ---------- */
+  .folder {
+    position: relative;
+    flex: none;
+    font-size: 23px; /* tout le dossier est dessiné en em */
+    width: 36em;
+    height: 27em;
+  }
+  .folder > * { position: absolute; }
+
+  .f-back {
+    left: 50%;
+    top: 3.5em;
+    width: 22em;
+    height: 14em;
+    margin-left: -11em;
+    background: linear-gradient(180deg, #E4E4E7, #D9D9DD);
+    border-radius: 1.6em;
+  }
+  .f-back::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: -1.4em;
+    width: 9em;
+    height: 3em;
+    background: #E4E4E7;
+    border-radius: 1.2em 1.2em 0 0;
+  }
+
+  .card {
+    left: 50%;
+    top: 4em;
+    width: 14em;
+    height: 17em;
+    margin-left: -7em;
+    background: #FFFFFF;
+    border-radius: 1.2em;
+    box-shadow: 0 0.2em 0.6em rgba(0, 0, 0, 0.06), 0 1.4em 3em rgba(0, 0, 0, 0.12);
+    overflow: hidden;
+    transform-origin: center bottom;
+    will-change: transform, opacity, filter;
+  }
+  .card.pricing { width: 16em; height: 18em; margin-left: -8em; top: 3em; padding: 1.2em 1em; }
+
+  .pr-title { font-size: 1.15em; font-weight: 600; text-align: center; letter-spacing: -0.02em; }
+  .pr-sub { height: 0.35em; width: 50%; margin: 0.6em auto 1.1em; background: #E8E8ED; border-radius: 1em; }
+  .pr-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.45em; }
+  .pr-col { border: 1px solid #EDEDF0; border-radius: 0.5em; padding: 0.45em; }
+  .pr-col .tag { height: 2.2em; border-radius: 0.35em; background: #F2F2F5; margin-bottom: 0.5em; }
+  .pr-col:nth-child(1) .tag { background: #E4E4E8; }
+  .pr-col:nth-child(2) .tag { background: #F8E5E7; }
+  .pr-col:nth-child(3) .tag { background: #EEF0F3; }
+  .pr-col b { display: block; font-size: 0.95em; font-weight: 700; letter-spacing: -0.02em; }
+  .pr-col b small { font-size: 0.5em; font-weight: 500; color: var(--muted); }
+  .pr-col .btn { height: 0.9em; background: var(--ink); border-radius: 1em; margin: 0.55em 0 0.6em; }
+  .pr-col .ln { height: 0.28em; background: #ECECF0; border-radius: 1em; margin-top: 0.38em; }
+  .pr-col .ln:nth-of-type(odd) { width: 80%; }
+
+  .card.editorial { padding: 1.3em 1.1em; }
+  .ed-title { font-family: Georgia, "Times New Roman", serif; font-size: 1.3em; letter-spacing: -0.01em; margin-bottom: 0.7em; }
+  .ed-ln { height: 0.3em; background: #E9E9EE; border-radius: 1em; margin-bottom: 0.42em; }
+  .ed-ln.s { width: 70%; }
+  .ed-img {
+    height: 7em;
+    margin-top: 0.9em;
+    border-radius: 0.5em;
+    background:
+      radial-gradient(ellipse at 30% 30%, rgba(255, 245, 210, 0.7), transparent 55%),
+      linear-gradient(160deg, #7C8F5A, #47593A 60%, #2F3D27);
+  }
+
+  .card.photo {
+    background:
+      radial-gradient(ellipse 60% 35% at 55% 28%, rgba(255, 220, 160, 0.85), transparent 70%),
+      repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.14) 0 2px, transparent 2px 2.2em),
+      linear-gradient(180deg, #4A3323 0%, #7A5536 45%, #5B3E28 70%, #2B1D13 100%);
+    border: 0.45em solid #FFFFFF;
+  }
+  .card.photo::after {
+    content: "";
+    position: absolute;
+    left: 12%;
+    right: 12%;
+    bottom: 18%;
+    height: 22%;
+    border-radius: 0.4em;
+    background: linear-gradient(180deg, #2E2016, #1C130C);
+    box-shadow: 0 -0.4em 1em rgba(255, 200, 140, 0.25);
+  }
+
+  .f-glass {
+    left: 50%;
+    top: 13.5em;
+    width: 22em;
+    height: 11em;
+    margin-left: -11em;
+    border-radius: 1.6em;
+    background: rgba(240, 240, 243, 0.55);
+    -webkit-backdrop-filter: blur(22px) saturate(1.4);
+    backdrop-filter: blur(22px) saturate(1.4);
+    border: 2px solid rgba(255, 255, 255, 0.7);
+    box-shadow: 0 1.6em 3.2em rgba(0, 0, 0, 0.12), inset 0 2px 0 rgba(255, 255, 255, 0.8);
+  }
+  .f-btn {
+    position: absolute;
+    right: 1.3em;
+    bottom: 1.3em;
+    width: 4.6em;
+    height: 4.6em;
+    border-radius: 50%;
+    background: var(--ink);
+    display: grid;
+    place-items: center;
+  }
+  .f-btn svg { width: 2em; height: 2em; }
+</style>
+</head>
+<body>
+  <div class="canvas" id="canvas" aria-live="polite"></div>
+
+<script>
+(() => {
+  /* ---------- Rythme ---------- */
+  const EASE = "cubic-bezier(0.16, 1, 0.3, 1)";
+  const LEAD = 500;       // écran blanc avant le départ (hors timeline)
+  const TOTAL = 20000;    // durée de la vidéo
+  const WORD = 450;       // entrée d'un mot
+  const STAGGER = 55;     // décalage entre mots
+  const EXIT = 280;       // sortie d'une phrase
+  const OVERLAP = 100;    // la phrase suivante entre pendant la sortie
+
+  /* ---------- Scénario (ms) ----------
+     Chaque scène sort à `out` ; la suivante commence à out + EXIT - OVERLAP. */
+  const SCENES = [
+    { text: "Une idée.", out: 2720 },
+    { text: "Un seul mot suffit.", out: 5720 },
+    { text: "Design", demo: "menu", out: 10440 },
+    { text: "Et tout prend forme.", demo: "folder", out: 15720 },
+    { text: "Simplement.", out: 18900, final: true }
+  ];
+
+  const params = new URLSearchParams(location.search);
+  const EXPORT = params.has("export");
+  const FIXED_SCALE = params.get("scale");
+  const canvas = document.getElementById("canvas");
+  const anims = [];
+
+  /* ---------- Mise à l'échelle ---------- */
+  function fit() {
+    const s = FIXED_SCALE ? parseFloat(FIXED_SCALE)
+      : Math.min(innerWidth / 1080, innerHeight / 1920);
+    canvas.style.transform = `scale(${s})`;
+  }
+  addEventListener("resize", fit);
+  fit();
+
+  /* ---------- Briques d'animation ----------
+     Toutes les animations sont créées d'un coup, avec un délai absolu sur la
+     timeline : la vidéo est donc déterministe et « seekable » image par image. */
+  function at(el, keyframes, start, duration, fill = "both") {
+    const a = el.animate(keyframes, { duration, delay: start, easing: EASE, fill });
+    a.pause();
+    anims.push(a);
+    return a;
+  }
+
+  // Flou de mouvement : le blur se résorbe dans les ~300 premières ms
+  // (la courbe atteint 98 % de sa progression vers 2/3 de la durée).
+  function blurIn(el, start, { dur = WORD, y = 30, blur = 14, overshoot = false } = {}) {
+    const s = p => (overshoot ? (p < 0.75 ? 0.96 + (1.01 - 0.96) * (p / 0.75) : 1.01 - 0.01 * ((p - 0.75) / 0.25)) : 1);
+    const kf = (p, o, b) => ({
+      offset: p,
+      opacity: o,
+      filter: `blur(${b}px)`,
+      transform: `translateY(${(y * (1 - p)).toFixed(2)}px) scale(${s(p).toFixed(4)})`
+    });
+    return at(el, [kf(0, 0, blur), kf(0.85, 1, blur * 0.12), kf(0.97, 1, 0), kf(1, 1, 0)], start, dur);
+  }
+
+  function blurOut(el, start, dur = EXIT, y = -40, blur = 12) {
+    return at(el, [
+      { opacity: 1, filter: "blur(0px)", transform: "translateY(0px)" },
+      { opacity: 0, filter: `blur(${blur}px)`, transform: `translateY(${y}px)` }
+    ], start, dur, "forwards");
+  }
+
+  /* ---------- Construction ---------- */
+  function buildLine(scene) {
+    const p = document.createElement("p");
+    p.className = "line" + (scene.demo === "menu" ? " big" : "");
+    const words = scene.text.split(" ");
+    words.forEach((w, i) => {
+      const span = document.createElement("span");
+      span.className = "word";
+      if (scene.demo === "menu") {
+        span.innerHTML =
+          `<span class="sel"><span class="hl"></span><span class="handle l"></span>${w}` +
+          `<span class="handle r"></span><span class="menu-pos"><span class="menu-in"><span class="menu">` +
+          `<span class="item"><span class="label">Think</span></span><i></i>` +
+          `<span class="item gen"><span class="press"></span><span class="ripple"></span><span class="label">Generate</span></span>` +
+          `</span></span></span></span>`;
+      } else {
+        span.textContent = w;
+      }
+      p.appendChild(span);
+      if (i < words.length - 1) p.appendChild(document.createTextNode(" "));
+    });
+    return p;
+  }
+
+  function buildFolder() {
+    const f = document.createElement("div");
+    f.className = "folder";
+    f.setAttribute("aria-hidden", "true");
+    const col = (price, lines) =>
+      `<div class="pr-col"><div class="tag"></div><b>${price}<small>/mois</small></b><div class="btn"></div>` +
+      `${'<div class="ln"></div>'.repeat(lines)}</div>`;
+    f.innerHTML = `
+      <div class="f-back"></div>
+      <div class="card editorial">
+        <div class="ed-title">Maison Calme</div>
+        <div class="ed-ln"></div><div class="ed-ln"></div><div class="ed-ln s"></div>
+        <div class="ed-ln"></div><div class="ed-ln s"></div>
+        <div class="ed-img"></div>
+      </div>
+      <div class="card photo"></div>
+      <div class="card pricing">
+        <div class="pr-title">Pricing plans</div>
+        <div class="pr-sub"></div>
+        <div class="pr-cols">${col("$12", 4)}${col("$29", 5)}${col("$49", 6)}</div>
+      </div>
+      <div class="f-glass">
+        <div class="f-btn"><span class="anim press-btn">
+          <svg viewBox="0 0 20 20" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 14 14 6"/><path d="M7.5 6H14v6.5"/></svg>
+        </span></div>
+      </div>`;
+    return f;
+  }
+
+  /* ---------- Démos ---------- */
+  function menuDemo(line, t) {
+    const sel = line.querySelector(".sel");
+    const w = sel.offsetWidth;
+    const hl = sel.querySelector(".hl");
+    const hL = sel.querySelector(".handle.l");
+    const hR = sel.querySelector(".handle.r");
+    const menuIn = sel.querySelector(".menu-in");
+    const menu = sel.querySelector(".menu");
+    const gen = sel.querySelector(".gen");
+
+    // Poignées qui apparaissent au début du mot…
+    at(hL, [{ opacity: 0, transform: "scaleY(0.2)" }, { opacity: 1, transform: "scaleY(1)" }], t, 260);
+    at(hR, [
+      { opacity: 0, transform: `translateX(${-w}px) scaleY(0.2)` },
+      { opacity: 1, transform: `translateX(${-w}px) scaleY(1)` }
+    ], t, 260);
+    // …puis la sélection s'étend.
+    const ext = t + 160;
+    at(hl, [{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }], ext, 520);
+    at(hR, [
+      { opacity: 1, transform: `translateX(${-w}px) scaleY(1)` },
+      { opacity: 1, transform: "translateX(0px) scaleY(1)" }
+    ], ext, 520, "forwards");
+
+    // Bulle avec léger dépassement.
+    const m = ext + 560;
+    blurIn(menuIn, m, { dur: 600, y: 24, overshoot: true });
+
+    // Tap sur « Generate ».
+    const tap = m + 2300;
+    at(gen.querySelector(".press"), [
+      { opacity: 0 }, { offset: 0.3, opacity: 1 }, { opacity: 0 }
+    ], tap, 520);
+    at(gen.querySelector(".ripple"), [
+      { opacity: 0.9, transform: "scale(0.2)" }, { opacity: 0, transform: "scale(1.6)" }
+    ], tap, 520);
+    at(menu, [
+      { transform: "scale(1)" }, { offset: 0.3, transform: "scale(0.97)" }, { transform: "scale(1)" }
+    ], tap, 420);
+  }
+
+  function folderDemo(folder, t) {
+    const $ = s => folder.querySelector(s);
+    blurIn($(".f-back"), t, { dur: 600, overshoot: true });
+    blurIn($(".f-glass"), t + 90, { dur: 600, y: 40, overshoot: true });
+
+    const fan = [[".editorial", -7.2, -1.2, -8], [".pricing", 0, -3.2, 0], [".photo", 7.2, -1.2, 8]];
+    fan.forEach(([sel, x, y, r], i) => {
+      const pos = (p, sc) => `translate(${x * p}em, ${6 + (y - 6) * p}em) rotate(${r * p}deg) scale(${sc})`;
+      at($(sel), [
+        { offset: 0, opacity: 0, filter: "blur(14px)", transform: pos(0, 0.86) },
+        { offset: 0.7, opacity: 1, filter: "blur(0px)", transform: pos(1.02, 1.01) },
+        { offset: 1, opacity: 1, filter: "blur(0px)", transform: pos(1, 1) }
+      ], t + 260 + i * 70, 700);
+    });
+
+    const btn = $(".f-btn");
+    blurIn(btn, t + 620, { dur: 500, y: 0, overshoot: true });
+    // Petit tap sur ↗ pour garder de la vie pendant la tenue.
+    at($(".press-btn"), [
+      { transform: "scale(1)" }, { offset: 0.35, transform: "scale(0.82)" }, { transform: "scale(1)" }
+    ], t + 3500, 420);
+  }
+
+  /* ---------- Timeline ---------- */
+  function build() {
+    canvas.replaceChildren();
+    anims.length = 0;
+    let start = 0;
+
+    for (const scene of SCENES) {
+      const wrap = document.createElement("div");
+      wrap.className = "scene";
+      let folder = null;
+      if (scene.demo === "folder") wrap.appendChild(folder = buildFolder());
+      const line = buildLine(scene);
+      wrap.appendChild(line);
+      canvas.appendChild(wrap);
+
+      const textStart = folder ? start + 240 : start;
+      line.querySelectorAll(".word").forEach((w, i) => blurIn(w, textStart + i * STAGGER));
+
+      if (scene.demo === "menu") menuDemo(line, start + WORD + 120);
+      if (folder) folderDemo(folder, start);
+
+      // Le fondu final est un peu plus long : c'est la fin de la vidéo.
+      if (scene.final) blurOut(wrap, scene.out, 700, -30, 14);
+      else blurOut(wrap, scene.out);
+      start = scene.out + EXIT - OVERLAP;
+    }
+  }
+
+  /* ---------- Lecture ---------- */
+  let started = false;
+  let endTimer = 0;
+
+  function seek(ms) {
+    for (const a of anims) { a.pause(); a.currentTime = Math.max(0, Math.min(ms, TOTAL)); }
+  }
+
+  function play() {
+    seek(0);
+    anims.forEach(a => a.play());
+    started = true;
+    clearTimeout(endTimer);
+    endTimer = setTimeout(() => { started = false; document.documentElement.dataset.done = "1"; }, TOTAL);
+  }
+
+  window.ready = (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => {
+    build();
+    seek(0);
+    window.seek = seek;
+    window.play = play;
+    window.DURATION = TOTAL;
+    if (!EXPORT) setTimeout(() => { if (!started) play(); }, LEAD);
+  });
+
+  // Clic : démarre tout de suite, ou relance une fois l'animation finie.
+  addEventListener("click", () => { if (!started && window.play) play(); });
+})();
+</script>
+</body>
+</html>

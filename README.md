@@ -10,3 +10,9 @@ Ouvrez-le directement dans un navigateur.
 - Démo menu contextuel (sélection + bulle Think | Generate) et démo dossier qui s'ouvre (cartes en éventail + verre dépoli).
 - Scénario modifiable dans le tableau `SCRIPT` ; la séquence boucle, bouton « Rejouer » en bas.
 - Respecte `prefers-reduced-motion` (pas de flou).
+
+## Keynote Short (vidéo verticale)
+
+`short.html` — même style, au format vidéo 1080×1920 (9:16), 20 s, sans boucle ni bouton.
+Démarre après 0,5 s ou au clic. Timeline déterministe : `short.html?export` + `window.seek(ms)`
+pour un export image par image (instructions en commentaire en haut du fichier).
