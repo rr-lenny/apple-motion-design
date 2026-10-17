@@ -1,5 +1,5 @@
 // Renders index.html frame by frame into an MP4 with synthesized sound design.
-// Usage: node render.mjs [out.mp4] [--preview "t1,t2,..."]
+// Usage: node render.mjs [out.mp4] [--page reel.html] [--preview "t1,t2,..."]
 import { createRequire } from 'node:module';
 import { spawn } from 'node:child_process';
 import { writeFileSync, mkdirSync } from 'node:fs';
@@ -12,13 +12,15 @@ try { playwright = require('playwright'); } catch { playwright = require('/opt/n
 
 const here = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
-const previewIdx = args.indexOf('--preview');
-const out = resolve(args.find((a, i) => !a.startsWith('--') && i !== previewIdx + 1) ?? 'output/slow.mp4');
+const previewIdx = args.indexOf('--preview'), pageIdx = args.indexOf('--page');
+const pageFile = pageIdx >= 0 ? args[pageIdx + 1] : 'index.html';
+const optValues = new Set([previewIdx, pageIdx].filter(i => i >= 0).map(i => i + 1));
+const out = resolve(args.find((a, i) => !a.startsWith('--') && !optValues.has(i)) ?? 'output/slow.mp4');
 mkdirSync(dirname(out), { recursive: true });
 
 const browser = await playwright.chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
-await page.goto(pathToFileURL(resolve(here, 'index.html')).href + '?render');
+await page.goto(pathToFileURL(resolve(here, pageFile)).href + '?render');
 await page.evaluate(() => window.ready);
 const { duration, fps, sfx } = await page.evaluate(() => ({ duration: window.DURATION, fps: window.FPS, sfx: window.SFX }));
 
@@ -49,6 +51,9 @@ const SOUNDS = {
   whoosh: t0 => { let lp = 0; add(t0, .4, t => { lp += (noise() - lp) * (.03 + .25 * Math.sin(Math.PI * t / .4)); return lp * Math.sin(Math.PI * t / .4) ** 2; }, .9); },
   glitch: t0 => add(t0, .28, t => (Math.sign(Math.sin(2 * Math.PI * (220 + 900 * Math.floor(t * 40 % 3)) * t)) * .5 + noise() * .3) * Math.exp(-t / .1), .18),
   bubble: t0 => add(t0, .15, sweep(500, 900, .02, .05), .3),
+  soft: t0 => add(t0, .08, t => Math.sin(2 * Math.PI * 1500 * t) * Math.exp(-t / .012), .06),
+  roll: t0 => { for (let i = 0; i < 14; i++) SOUNDS.tick(t0 + (1 - Math.pow(1 - i / 14, 2)) * 1.1); },
+  shimmer: t0 => [1320, 1760, 2640].forEach((f, k) => add(t0 + k * .05, 1.2, t => Math.sin(2 * Math.PI * f * t) * Math.exp(-t / .35), .05)),
   select: t0 => add(t0, .1, t => Math.sin(2 * Math.PI * 2200 * t) * Math.exp(-t / .02), .12),
 };
 for (const { t, type } of sfx) SOUNDS[type]?.(t);

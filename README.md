@@ -19,3 +19,18 @@ node render.mjs out/p.mp4 --preview "1,5.5,9"  # captures PNG à des instants do
 
 Pour modifier une scène : chaque scène est une fonction `sXxx(t)` listée dans `SCENES`
 (durée `d`, effets sonores `sfx`).
+
+## `attention` — reel vertical 9:16
+
+Vidéo de 34,5 s (1080×1920) façon « explainer » minimaliste : petite légende centrée
+qui apparaît lettre par lettre avec un flou, fondus flous entre les phrases, et au-dessus
+un élément d'interface épuré qui illustre chaque idée (téléphone et compteur, calendrier de
+points, orbite d'avatars, message + bouton, projecteur sur fond noir, page e‑commerce qui
+« crie »), puis le logo final.
+
+- `reel.html` — l'animation (légendes dans `CAPTIONS`, scènes dans `SCENES`, sons dans `SFX`).
+- `output/attention.mp4` — la vidéo rendue.
+
+```bash
+node render.mjs output/attention.mp4 --page reel.html
+```
